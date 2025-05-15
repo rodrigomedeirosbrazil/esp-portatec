@@ -1,18 +1,40 @@
 #include <Arduino.h>
 
-// put function declarations here:
-int myFunction(int, int);
+#include <ESP8266WiFi.h>
+#include <ESP8266WebServer.h>
+#include <WiFiClient.h>
+#include <DNSServer.h>
+
+#ifndef APSSID
+  #define APSSID "ESP-PORTATEC"
+  #define APPSK "123456789"
+#endif
+
+const char *ssid = APSSID;
+const char *password = APPSK;
+
+ESP8266WebServer server(80);
+
+void handleRoot() {
+  server.send(200, "text/html", "<h1>You are connected</h1>");
+}
 
 void setup() {
-  // put your setup code here, to run once:
-  int result = myFunction(2, 3);
+  delay(1000);
+  Serial.begin(115200);
+  Serial.println();
+  Serial.print("Configuring access point...");
+
+  WiFi.softAP(ssid, password);
+
+  IPAddress myIP = WiFi.softAPIP();
+  Serial.print("AP IP address: ");
+  Serial.println(myIP);
+  server.on("/", handleRoot);
+  server.begin();
+  Serial.println("HTTP server started");
 }
 
 void loop() {
-  // put your main code here, to run repeatedly:
-}
-
-// put function definitions here:
-int myFunction(int x, int y) {
-  return x + y;
+  server.handleClient();
 }
