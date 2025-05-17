@@ -8,7 +8,7 @@ class DeviceConfig {
 private:
     static const int CONFIG_ADDRESS = 0;
     static const uint32_t CONFIG_SIGNATURE = 0x504F5254;
-    static const uint8_t CONFIG_VERSION = 1;
+    static const uint8_t CONFIG_VERSION = 2;
 
     static const char defaultDeviceName[];
     static const char defaultPassword[];
