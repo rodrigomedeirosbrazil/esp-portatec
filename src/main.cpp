@@ -4,64 +4,15 @@
 #include <ESP8266WebServer.h>
 #include <WiFiClient.h>
 #include <DNSServer.h>
+#include "DeviceConfig/DeviceConfig.h"
 
 #include "main.h"
-
-// EEPROM configuration structure
-struct Config {
-  uint32_t signature;
-  uint8_t version;
-  char deviceName[32];
-  char wifiPassword[32];
-};
-
-Config config;
-
-// Constantes
-const int CONFIG_ADDRESS = 0;
-const uint32_t CONFIG_SIGNATURE = 0x504F5254;
-const uint8_t CONFIG_VERSION = 1;
-
-// Default values
-const char *defaultDeviceName = "ESP-PORTATEC";
-const char *defaultPassword = "123456789";
-
-bool configured = false;
 
 IPAddress myIP;
 DNSServer dnsServer;
 ESP8266WebServer server(80);
 
-// Function to initialize default configuration
-void initDefaultConfig() {
-  config.signature = CONFIG_SIGNATURE;
-  config.version = CONFIG_VERSION;
-  strcpy(config.deviceName, defaultDeviceName);
-  strcpy(config.wifiPassword, defaultPassword);
-}
-
-// Function to load configuration from EEPROM
-void loadConfig() {
-  EEPROM.get(CONFIG_ADDRESS, config);
-
-  // Verifica se a assinatura e versão são válidas
-  if (config.signature != CONFIG_SIGNATURE || config.version != CONFIG_VERSION) {
-    initDefaultConfig();
-    saveConfig();
-    configured = false;
-    return;
-  }
-
-  configured = true;
-}
-
-// Function to save configuration to EEPROM
-void saveConfig() {
-  config.signature = CONFIG_SIGNATURE;
-  config.version = CONFIG_VERSION;
-  EEPROM.put(CONFIG_ADDRESS, config);
-  EEPROM.commit();
-}
+DeviceConfig deviceConfig;
 
 // Configuration page handler
 void handleConfig() {
@@ -77,8 +28,8 @@ void handleConfig() {
   html += "<body>";
   html += "<h1>ESP-PORTATEC Configuration</h1>";
   html += "<form action='/saveconfig' method='POST'>";
-  html += "<input type='text' name='devicename' placeholder='Device Name' value='" + String(config.deviceName) + "' required><br>";
-  html += "<input type='password' name='password' placeholder='WiFi Password' value='" + String(config.wifiPassword) + "' required><br>";
+  html += "<input type='text' name='devicename' placeholder='Device Name' value='" + String(deviceConfig.getDeviceName()) + "' required><br>";
+  html += "<input type='password' name='password' placeholder='WiFi Password' value='" + String(deviceConfig.getPassword()) + "' required><br>";
   html += "<button type='submit'>Save Configuration</button>";
   html += "</form></body></html>";
   server.send(200, "text/html", html);
@@ -91,9 +42,9 @@ void handleSaveConfig() {
     String password = server.arg("password");
 
     if (deviceName.length() > 0 && password.length() > 0) {
-      deviceName.toCharArray(config.deviceName, 32);
-      password.toCharArray(config.wifiPassword, 32);
-      saveConfig();
+      deviceConfig.setDeviceName(deviceName.c_str());
+      deviceConfig.setPassword(password.c_str());
+      deviceConfig.saveConfig();
 
       // Restart ESP to apply new configuration
       server.send(200, "text/html", "<script>setTimeout(function(){ window.location.href='/'; }, 3000);</script>Configuration saved! Restarting...");
@@ -141,7 +92,7 @@ void handleRoot() {
   html += "</style></head>";
   html += "<body>";
   html += "<h1>ESP-PORTATEC Control</h1>";
-  html += "<p>Dispositivo: " + String(config.deviceName) + "</p>";
+  html += "<p>Dispositivo: " + String(deviceConfig.getDeviceName()) + "</p>";
   html += "<div class='button-container'>";
   html += "<button id='gpio0Button' onclick='toggleGPIO(0)'>Toggle GPIO0</button>";
   html += "<button id='gpio1Button' onclick='toggleGPIO(1)'>Toggle GPIO1</button>";
@@ -172,12 +123,8 @@ void handleRoot() {
 void setup() {
   delay(1000);
 
-  // Initialize EEPROM
-  EEPROM.begin(512);
-  loadConfig();
-
   // Start AP with configured or default values
-  WiFi.softAP(config.deviceName, config.wifiPassword);
+  WiFi.softAP(deviceConfig.getDeviceName(), deviceConfig.getPassword());
   myIP = WiFi.softAPIP();
 
   // Configure all GPIOs as outputs
@@ -197,7 +144,7 @@ void setup() {
   server.on("/saveconfig", HTTP_POST, handleSaveConfig);
 
   // Only show main page if configured
-  if (configured) {
+  if (deviceConfig.isConfigured()) {
     server.on("/", handleRoot);
   } else {
     server.on("/", handleConfig);
