@@ -15,6 +15,7 @@ void DeviceConfig::initDefaultConfig() {
   config.version = CONFIG_VERSION;
   strcpy(config.deviceName, defaultDeviceName);
   strcpy(config.wifiPassword, defaultPassword);
+  config.pulsePin = 3; // Default pin
 }
 
 void DeviceConfig::loadConfig() {
@@ -45,4 +46,8 @@ void DeviceConfig::setDeviceName(const char* name) {
 void DeviceConfig::setPassword(const char* password) {
     strncpy(config.wifiPassword, password, sizeof(config.wifiPassword) - 1);
     config.wifiPassword[sizeof(config.wifiPassword) - 1] = '\0';
+}
+
+void DeviceConfig::setPulsePin(uint8_t pin) {
+    config.pulsePin = pin;
 }

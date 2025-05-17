@@ -18,6 +18,7 @@ private:
         uint8_t version;
         char deviceName[32];
         char wifiPassword[32];
+        uint8_t pulsePin;
     };
 
     Config config;
@@ -28,8 +29,10 @@ public:
     bool isConfigured() const { return configured; }
     const char* getDeviceName() const { return config.deviceName; }
     const char* getPassword() const { return config.wifiPassword; }
+    uint8_t getPulsePin() const { return config.pulsePin; }
     void setDeviceName(const char* name);
     void setPassword(const char* password);
+    void setPulsePin(uint8_t pin);
     void initDefaultConfig();
     void loadConfig();
     void saveConfig();

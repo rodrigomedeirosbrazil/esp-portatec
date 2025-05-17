@@ -8,8 +8,6 @@
 
 #include "main.h"
 
-#define PIN_PULSE 3
-
 IPAddress myIP;
 DNSServer dnsServer;
 ESP8266WebServer server(80);
@@ -32,6 +30,7 @@ void handleConfig() {
   html += "<form action='/saveconfig' method='POST'>";
   html += "<input type='text' name='devicename' placeholder='Device Name' value='" + String(deviceConfig.getDeviceName()) + "' required><br>";
   html += "<input type='password' name='password' placeholder='WiFi Password' value='" + String(deviceConfig.getPassword()) + "' required><br>";
+  html += "<input type='number' name='pulsepin' placeholder='Pulse Pin' value='" + String(deviceConfig.getPulsePin()) + "' required><br>";
   html += "<button type='submit'>Save Configuration</button>";
   html += "</form></body></html>";
   server.send(200, "text/html", html);
@@ -39,13 +38,15 @@ void handleConfig() {
 
 // Save configuration handler
 void handleSaveConfig() {
-  if (server.hasArg("devicename") && server.hasArg("password")) {
+  if (server.hasArg("devicename") && server.hasArg("password") && server.hasArg("pulsepin")) {
     String deviceName = server.arg("devicename");
     String password = server.arg("password");
+    String pulsePinStr = server.arg("pulsepin");
 
-    if (deviceName.length() > 0 && password.length() > 0) {
+    if (deviceName.length() > 0 && password.length() > 0 && pulsePinStr.length() > 0) {
       deviceConfig.setDeviceName(deviceName.c_str());
       deviceConfig.setPassword(password.c_str());
+      deviceConfig.setPulsePin(pulsePinStr.toInt());
       deviceConfig.saveConfig();
 
       // Restart ESP to apply new configuration
@@ -63,10 +64,11 @@ void handleNotFound() {
 }
 
 void handlePulse() {
-  digitalWrite(PIN_PULSE, HIGH);
+  uint8_t pin = deviceConfig.getPulsePin();
+  digitalWrite(pin, HIGH);
   delay(500);
-  digitalWrite(PIN_PULSE, LOW);
-  server.send(200, "text/plain", "GPIO " + String(PIN_PULSE) + " toggled");
+  digitalWrite(pin, LOW);
+  server.send(200, "text/plain", "GPIO " + String(pin) + " toggled");
 }
 
 void handleRoot() {
@@ -115,8 +117,8 @@ void setup() {
   WiFi.softAP(deviceConfig.getDeviceName(), deviceConfig.getPassword());
   myIP = WiFi.softAPIP();
 
-  pinMode(PIN_PULSE, OUTPUT);
-  digitalWrite(PIN_PULSE, LOW);
+  pinMode(deviceConfig.getPulsePin(), OUTPUT);
+  digitalWrite(deviceConfig.getPulsePin(), LOW);
 
   // Route configuration endpoints
   server.on("/config", handleConfig);
