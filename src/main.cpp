@@ -14,20 +14,26 @@ DNSServer dnsServer;
 
 DeviceConfig deviceConfig;
 Webserver webserver(&deviceConfig);
+
 void setup() {
   delay(1000);
 
-  // Start AP with configured or default values
-  WiFi.softAP(deviceConfig.getDeviceName(), deviceConfig.getPassword());
-  myIP = WiFi.softAPIP();
-
+  // Initialize pulse pin regardless of configuration
   pinMode(deviceConfig.getPulsePin(), OUTPUT);
   digitalWrite(deviceConfig.getPulsePin(), LOW);
 
-  dnsServer.start(53, "*", myIP);
+  // Only start AP, webserver and DNS if device is not configured
+  if (!deviceConfig.isConfigured()) {
+    WiFi.softAP(deviceConfig.getDeviceName(), deviceConfig.getPassword());
+    myIP = WiFi.softAPIP();
+    dnsServer.start(53, "*", myIP);
+  }
 }
 
 void loop() {
-  webserver.handleClient();
-  dnsServer.processNextRequest();
+  // Only handle webserver and DNS if device is not configured
+  if (!deviceConfig.isConfigured()) {
+    webserver.handleClient();
+    dnsServer.processNextRequest();
+  }
 }
