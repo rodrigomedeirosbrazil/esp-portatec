@@ -3,14 +3,6 @@
 
 #include <Arduino.h>
 
-
-void initDefaultConfig();
-void loadConfig();
-void saveConfig();
-void handleConfig();
-void handleSaveConfig();
-void handleRoot();
-void handleGPIO();
-void handleNotFound();
+void setupAPMode();
 
 #endif // MAIN_H
