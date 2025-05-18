@@ -32,13 +32,28 @@ void Webserver::handleConfig() {
   html += "input { padding: 10px; margin: 10px; width: 80%; max-width: 300px; }";
   html += "button { padding: 10px 20px; font-size: 16px; background-color: #4CAF50; color: white; border: none; border-radius: 4px; cursor: pointer; }";
   html += "button:hover { background-color: #45a049; }";
+  html += ".section { margin: 20px 0; padding: 20px; border: 1px solid #ddd; border-radius: 4px; }";
+  html += "h2 { margin-top: 0; }";
   html += "</style></head>";
   html += "<body>";
   html += "<h1>ESP-PORTATEC Configuration</h1>";
   html += "<form action='/saveconfig' method='POST'>";
+
+  // Device Configuration Section
+  html += "<div class='section'>";
+  html += "<h2>Device Configuration</h2>";
   html += "<input type='text' name='devicename' placeholder='Device Name' value='" + String(instance->deviceConfig->getDeviceName()) + "' required><br>";
   html += "<input type='password' name='password' placeholder='WiFi Password' value='" + String(instance->deviceConfig->getPassword()) + "' required><br>";
   html += "<input type='number' name='pulsepin' placeholder='Pulse Pin' value='" + String(instance->deviceConfig->getPulsePin()) + "' required><br>";
+  html += "</div>";
+
+  // WiFi Network Configuration Section
+  html += "<div class='section'>";
+  html += "<h2>WiFi Network Configuration</h2>";
+  html += "<input type='text' name='wifissid' placeholder='WiFi Network Name (SSID)' value='" + String(instance->deviceConfig->getWifiSSID()) + "'><br>";
+  html += "<input type='password' name='wifipass' placeholder='WiFi Network Password' value='" + String(instance->deviceConfig->getWifiNetworkPass()) + "'><br>";
+  html += "</div>";
+
   html += "<button type='submit'>Save Configuration</button>";
   html += "</form></body></html>";
   instance->server.send(200, "text/html", html);
@@ -49,11 +64,20 @@ void Webserver::handleSaveConfig() {
     String deviceName = instance->server.arg("devicename");
     String password = instance->server.arg("password");
     String pulsePinStr = instance->server.arg("pulsepin");
+    String wifiSSID = instance->server.arg("wifissid");
+    String wifiPass = instance->server.arg("wifipass");
 
     if (deviceName.length() > 0 && password.length() > 0 && pulsePinStr.length() > 0) {
       instance->deviceConfig->setDeviceName(deviceName.c_str());
       instance->deviceConfig->setPassword(password.c_str());
       instance->deviceConfig->setPulsePin(pulsePinStr.toInt());
+
+      // Set WiFi network configuration if provided
+      if (wifiSSID.length() > 0) {
+        instance->deviceConfig->setWifiSSID(wifiSSID.c_str());
+        instance->deviceConfig->setWifiNetworkPass(wifiPass.c_str());
+      }
+
       instance->deviceConfig->saveConfig();
 
       // Restart ESP to apply new configuration
