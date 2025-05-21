@@ -34,9 +34,11 @@ void Webserver::handleConfig() {
   html += "button:hover { background-color: #45a049; }";
   html += ".section { margin: 20px 0; padding: 20px; border: 1px solid #ddd; border-radius: 4px; }";
   html += "h2 { margin-top: 0; }";
+  html += ".chip-id { font-size: 14px; color: #666; margin-bottom: 20px; }";
   html += "</style></head>";
   html += "<body>";
   html += "<h1>ESP-PORTATEC Configuration</h1>";
+  html += "<div class='chip-id'>Chip ID: " + String(ESP.getChipId(), HEX) + "</div>";
   html += "<form action='/saveconfig' method='POST'>";
 
   // Device Configuration Section
@@ -117,6 +119,7 @@ void Webserver::handleRoot() {
   html += "<body>";
   html += "<h1>ESP-PORTATEC Control</h1>";
   html += "<p>Dispositivo: " + String(instance->deviceConfig->getDeviceName()) + "</p>";
+  html += "<p>Chip ID: " + String(ESP.getChipId(), HEX) + "</p>";
   html += "<div class='button-container'>";
   html += "<button id='pulseButton' onclick='pulseGpio()'>Abrir</button>";
   html += "</div>";
