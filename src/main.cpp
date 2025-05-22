@@ -5,6 +5,8 @@
 #include <DNSServer.h>
 #include "DeviceConfig/DeviceConfig.h"
 #include "Webserver/Webserver.h"
+#include "Sync/Sync.h"
+
 #include "globals.h"
 
 #include "main.h"
@@ -15,6 +17,7 @@ WiFiClient client;
 
 DeviceConfig deviceConfig;
 Webserver webserver(&deviceConfig);
+Sync sync(&deviceConfig);
 
 unsigned long lastCheck = 0;
 
@@ -51,6 +54,8 @@ void loop() {
     handleConnection();
     lastCheck = millis();
   }
+
+  sync.handle();
 }
 
 void setupAPMode() {
