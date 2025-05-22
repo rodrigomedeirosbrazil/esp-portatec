@@ -27,6 +27,8 @@ private:
     bool configured;
 
 public:
+    static const char* FIRMWARE_VERSION;
+
     DeviceConfig();
     bool isConfigured() const { return configured; }
     const char* getDeviceName() const { return config.deviceName; }
