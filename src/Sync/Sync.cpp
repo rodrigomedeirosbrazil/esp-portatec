@@ -1,6 +1,7 @@
 #include <Arduino.h>
 #include <ESP8266HTTPClient.h>
 #include <WiFiClientSecureBearSSL.h>
+#include <ESP8266httpUpdate.h>
 
 #include "Sync.h"
 
@@ -30,7 +31,7 @@ void Sync::sync() {
   if (https.begin(*client, "https://portatec.medeirostec.com.br/api/sync/" + deviceId)) {
     https.addHeader("Content-Type", "application/json");
 
-    String postData = "{\"millis\":" + String(millis()) + "}";
+    String postData = "{\"millis\":" + String(millis()) + ", \"firmware_version\":\"" + String(DeviceConfig::FIRMWARE_VERSION) + "\"}";
 
     int httpCode = https.POST(postData);
 
@@ -38,19 +39,49 @@ void Sync::sync() {
       if (httpCode == 204) {
         lastSuccessfulSync = millis();
       }
+      updateFirmware(); // remove it!
+      https.end();
       return;
     }
 
     lastSuccessfulSync = millis();
-    uint8_t pin = deviceConfig->getPulsePin();
-    digitalWrite(pin, HIGH);
-    delay(500);
-    digitalWrite(pin, LOW);
 
-    https.end();
+    String payload = https.getString();
+
+    if (payload.equals("pulse")) {
+      pulse();
+      https.end();
+      return;
+    }
+
+    if (payload.equals("update-firmware")) {
+      updateFirmware(); // remove it!
+      https.end();
+      return;
+    }
   }
 }
 
 bool Sync::isSyncing() {
   return millis() - lastSuccessfulSync < 10000;
+}
+
+void Sync::pulse() {
+  uint8_t pin = deviceConfig->getPulsePin();
+  digitalWrite(pin, HIGH);
+  delay(500);
+  digitalWrite(pin, LOW);
+}
+
+void Sync::updateFirmware() {
+  std::unique_ptr<BearSSL::WiFiClientSecure>client(new BearSSL::WiFiClientSecure);
+  client->setInsecure();
+
+  // String url = "https://portatec.medeirostec.com.br/api/firmware/?deviceId=" + deviceId + "&version=" + DeviceConfig::FIRMWARE_VERSION;
+  String url = "http://192.168.15.112:8000/firmware-2025-05-22.bin?deviceId=" + deviceId + "&version=" + DeviceConfig::FIRMWARE_VERSION; // remove it
+  t_httpUpdate_return ret = ESPhttpUpdate.update(*client, url);
+
+  if (ret == HTTP_UPDATE_OK) {
+    ESP.restart();
+  }
 }

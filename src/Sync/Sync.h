@@ -13,6 +13,8 @@ class Sync {
     void handle();
     void sync();
     bool isSyncing();
+    void pulse();
+    void updateFirmware();
 };
 
 #endif
