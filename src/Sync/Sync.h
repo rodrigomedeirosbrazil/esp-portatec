@@ -12,6 +12,7 @@ class Sync {
     Sync(DeviceConfig *deviceConfig);
     void handle();
     void sync();
+    bool isSyncing();
 };
 
 #endif

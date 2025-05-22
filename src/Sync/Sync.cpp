@@ -41,6 +41,7 @@ void Sync::sync() {
       return;
     }
 
+    lastSuccessfulSync = millis();
     uint8_t pin = deviceConfig->getPulsePin();
     digitalWrite(pin, HIGH);
     delay(500);
@@ -48,4 +49,8 @@ void Sync::sync() {
 
     https.end();
   }
+}
+
+bool Sync::isSyncing() {
+  return millis() - lastSuccessfulSync < 10000;
 }
