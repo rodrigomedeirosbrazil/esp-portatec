@@ -8,5 +8,6 @@ void handleConnection();
 bool hasInternetConnection();
 void waitForWifiConnection();
 void reconnectWifi();
+void handleApMode();
 
 #endif // MAIN_H

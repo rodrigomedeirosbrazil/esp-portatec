@@ -20,6 +20,9 @@ Webserver webserver(&deviceConfig);
 Sync sync(&deviceConfig);
 
 unsigned long lastCheck = 0;
+unsigned long lastSyncCheck = 0;
+unsigned long apModeStartTime = 0;
+unsigned int syncTimeoutCount = 0;
 
 void setup() {
   delay(1000);
@@ -47,18 +50,16 @@ void loop() {
   if (!deviceConfig.isConfigured() || WiFi.getMode() == WIFI_AP) {
     webserver.handleClient();
     dnsServer.processNextRequest();
-    return;
   }
 
-  if (millis() - lastCheck > 30000) { // Check every 30 seconds
-    handleConnection();
-    lastCheck = millis();
-  }
+  handleConnection();
+  handleApMode();
 
   sync.handle();
 }
 
 void setupAPMode() {
+  apModeStartTime = millis();
   WiFi.mode(WIFI_AP);
   WiFi.softAP(deviceConfig.getDeviceName(), deviceConfig.getPassword());
   myIP = WiFi.softAPIP();
@@ -66,22 +67,55 @@ void setupAPMode() {
 }
 
 void handleConnection() {
-  if (hasInternetConnection()) {
+  if (WiFi.getMode() == WIFI_AP) {
     return;
   }
 
-  unsigned int failedAttempts = 0;
-  while (failedAttempts < 3) {
-    reconnectWifi();
+  if (millis() - lastCheck < 30000) {
+    return;
+  }
 
+  lastCheck = millis();
+
+  if (!sync.isSyncing()) {
+    syncTimeoutCount++;
+    if (syncTimeoutCount >= 3) { // 90 seconds without sync
+      syncTimeoutCount = 0;
+      setupAPMode();
+      return;
+    }
+  } else {
+    syncTimeoutCount = 0;
+  }
+
+  // Check WiFi connection
+  if (WiFi.status() != WL_CONNECTED) {
+    unsigned int wifiAttempts = 0;
+    while (wifiAttempts < 3) {
+      reconnectWifi();
+      if (WiFi.status() == WL_CONNECTED) {
+        break;
+      }
+      wifiAttempts++;
+    }
+
+    if (wifiAttempts >= 3) {
+      setupAPMode();
+      return;
+    }
+  }
+
+  // Check internet connection
+  unsigned int internetAttempts = 0;
+  while (internetAttempts < 3) {
     if (hasInternetConnection()) {
       return;
     }
-
-    failedAttempts++;
+    internetAttempts++;
+    delay(1000);
   }
 
-  // After 3 failed attempts, switch to AP mode
+  // If we get here, we couldn't establish internet connection
   setupAPMode();
 }
 
@@ -110,4 +144,17 @@ void reconnectWifi() {
   WiFi.disconnect();
   WiFi.begin(deviceConfig.getWifiSSID(), deviceConfig.getWifiNetworkPass());
   waitForWifiConnection();
+}
+
+void handleApMode() {
+  if (WiFi.getMode() != WIFI_AP) {
+    return;
+  }
+
+  if (
+    deviceConfig.isConfigured()
+    && millis() - apModeStartTime > 300000 // 300000 = 5 minutes
+  ) {
+    ESP.restart();
+  }
 }
