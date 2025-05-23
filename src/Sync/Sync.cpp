@@ -39,7 +39,6 @@ void Sync::sync() {
       if (httpCode == 204) {
         lastSuccessfulSync = millis();
       }
-      updateFirmware(); // remove it!
       https.end();
       return;
     }
@@ -49,16 +48,18 @@ void Sync::sync() {
     String payload = https.getString();
 
     if (payload.equals("pulse")) {
-      pulse();
       https.end();
+      pulse();
       return;
     }
 
     if (payload.equals("update-firmware")) {
-      updateFirmware(); // remove it!
       https.end();
+      updateFirmware();
       return;
     }
+
+    https.end();
   }
 }
 
@@ -77,8 +78,7 @@ void Sync::updateFirmware() {
   std::unique_ptr<BearSSL::WiFiClientSecure>client(new BearSSL::WiFiClientSecure);
   client->setInsecure();
 
-  // String url = "https://portatec.medeirostec.com.br/api/firmware/?deviceId=" + deviceId + "&version=" + DeviceConfig::FIRMWARE_VERSION;
-  String url = "http://192.168.15.112:8000/firmware-2025-05-22.bin?deviceId=" + deviceId + "&version=" + DeviceConfig::FIRMWARE_VERSION; // remove it
+  String url = "https://portatec.medeirostec.com.br/api/firmware/?deviceId=" + deviceId + "&version=" + DeviceConfig::FIRMWARE_VERSION;
   t_httpUpdate_return ret = ESPhttpUpdate.update(*client, url);
 
   if (ret == HTTP_UPDATE_OK) {
