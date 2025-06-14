@@ -214,7 +214,25 @@ void Sync::pulse() {
   digitalWrite(pin, HIGH);
   delay(500);
   digitalWrite(pin, LOW);
+  sendCommandAck("pulse");
   DEBUG_PRINTLN("[Device] Pulse completed");
+}
+
+void Sync::sendCommandAck(String commandName) {
+  DEBUG_PRINT("[Pusher] Sending command ack for command: ");
+  DEBUG_PRINTLN(commandName);
+
+  DynamicJsonDocument doc(256);
+  doc["event"] = "client-command-ack";
+  doc["channel"] = channelName;
+
+  String message;
+  serializeJson(doc, message);
+
+  DEBUG_PRINT("[Pusher] Sending command ack message: ");
+  DEBUG_PRINTLN(message);
+
+  webSocket.sendTXT(message);
 }
 
 void Sync::updateFirmware() {
@@ -229,6 +247,7 @@ void Sync::updateFirmware() {
   t_httpUpdate_return ret = ESPhttpUpdate.update(*client, url);
 
   if (ret == HTTP_UPDATE_OK) {
+    sendCommandAck("update-firmware");
     DEBUG_PRINTLN("[Firmware] Update successful, restarting...");
     ESP.restart();
   } else {

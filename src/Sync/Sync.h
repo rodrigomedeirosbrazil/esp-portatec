@@ -22,6 +22,7 @@ class Sync {
     void sendDeviceStatus();
     void handlePusherMessage(String message);
     void pulse();
+    void sendCommandAck(String commandName);
     void updateFirmware();
 
   public:
