@@ -226,6 +226,10 @@ void Sync::sendCommandAck(String commandName) {
   doc["event"] = "client-command-ack";
   doc["channel"] = channelName;
 
+  JsonObject data = doc.createNestedObject("data");
+  data["chipId"] = deviceId;
+  data["command"] = commandName;
+
   String message;
   serializeJson(doc, message);
 
