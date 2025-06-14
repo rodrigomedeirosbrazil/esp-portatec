@@ -4,6 +4,6 @@
 #include <IPAddress.h>
 
 extern IPAddress myIP;
-extern String API_KEY = "your-api-key";
+extern String API_KEY;
 
 #endif

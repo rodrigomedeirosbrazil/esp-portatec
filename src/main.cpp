@@ -11,7 +11,6 @@
 
 #include "main.h"
 
-IPAddress myIP;
 DNSServer dnsServer;
 WiFiClient client;
 
