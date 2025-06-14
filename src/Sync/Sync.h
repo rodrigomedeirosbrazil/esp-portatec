@@ -19,6 +19,7 @@ class Sync {
     void onWebSocketEvent(WStype_t type, uint8_t * payload, size_t length);
     void subscribeToChannel();
     void sendPong();
+    void sendDeviceStatus();
     void handlePusherMessage(String message);
     void pulse();
     void updateFirmware();
