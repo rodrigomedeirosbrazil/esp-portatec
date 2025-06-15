@@ -22,7 +22,7 @@ Sync::Sync(DeviceConfig *deviceConfig) {
   DEBUG_PRINTLN(channelName);
 
   // Configure WebSocket
-  webSocket.begin("localhost", 8888, "/app/" + API_KEY + "?protocol=7&client=js&version=7.0.0&flash=false");
+  connect();
   webSocket.onEvent([this](WStype_t type, uint8_t * payload, size_t length) {
     this->onWebSocketEvent(type, payload, length);
   });
@@ -57,7 +57,11 @@ void Sync::connect() {
     }
 
     DEBUG_PRINTLN("Attempting to connect to WebSocket...");
-    webSocket.begin("localhost", 8888, "/app/" + API_KEY + "?protocol=7&client=js&version=7.0.0&flash=false");
+    webSocket.beginSSL(
+      "portatec.medeirostec.com.br",
+      443,
+      String("/app/" + API_KEY + "?protocol=7&client=js&version=7.0.0&flash=false").c_str()
+    );
   }
 }
 
