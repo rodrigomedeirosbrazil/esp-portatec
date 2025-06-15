@@ -38,10 +38,10 @@ void Sync::handle() {
   if (!connected) {
     if (millis() - lastPing > 5000) {
       // Only try to connect if WiFi is connected and not in AP mode
-      if (WiFi.status() == WL_CONNECTED && WiFi.getMode() != WIFI_AP) {
+      if (WiFi.status() == WL_CONNECTED) {
         connect();
       } else {
-        DEBUG_PRINTLN("[WebSocket] Skipping connection attempt - WiFi not connected or in AP mode");
+        DEBUG_PRINTLN("[WebSocket] Skipping connection attempt - WiFi not connected");
       }
       lastPing = millis();
     }
@@ -51,8 +51,8 @@ void Sync::handle() {
 void Sync::connect() {
   if (!connected) {
     // Additional safety check
-    if (WiFi.status() != WL_CONNECTED || WiFi.getMode() == WIFI_AP) {
-      DEBUG_PRINTLN("[WebSocket] Cannot connect - WiFi not connected or in AP mode");
+    if (WiFi.status() != WL_CONNECTED) {
+      DEBUG_PRINTLN("[WebSocket] Cannot connect - WiFi not connected");
       return;
     }
 
