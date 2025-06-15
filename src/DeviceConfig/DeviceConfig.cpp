@@ -26,7 +26,6 @@ void DeviceConfig::loadConfig() {
 
   if (config.signature != CONFIG_SIGNATURE || config.version != CONFIG_VERSION) {
     initDefaultConfig();
-    saveConfig();
     configured = false;
     return;
   }
