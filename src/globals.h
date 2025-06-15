@@ -3,14 +3,20 @@
 
 #include <IPAddress.h>
 
-// Debug flag - set to true to enable debug logging
-#define DEBUG true
+// Debug flag - comment/uncomment the line below to disable/enable debug logging
+// This uses compile-time preprocessing instead of runtime checks for better performance
+// #define DEBUG
 
 extern IPAddress myIP;
 extern String API_KEY;
 
-// Debug helper macro
-#define DEBUG_PRINT(x) if(DEBUG) { Serial.print(x); }
-#define DEBUG_PRINTLN(x) if(DEBUG) { Serial.println(x); }
+// Debug helper macros
+#ifdef DEBUG
+  #define DEBUG_PRINT(x) Serial.print(x)
+  #define DEBUG_PRINTLN(x) Serial.println(x)
+#else
+  #define DEBUG_PRINT(x)
+  #define DEBUG_PRINTLN(x)
+#endif
 
 #endif

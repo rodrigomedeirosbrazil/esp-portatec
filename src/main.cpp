@@ -27,12 +27,12 @@ void setup() {
   delay(1000);
 
   // Initialize Serial only if DEBUG is enabled
-  if (DEBUG) {
-    Serial.begin(9600);
-    Serial.println();
-    DEBUG_PRINTLN("=== ESP PORTATEC DEBUG MODE ===");
-    DEBUG_PRINTLN("Device starting up...");
-  }
+#ifdef DEBUG
+  Serial.begin(9600);
+  Serial.println();
+  DEBUG_PRINTLN("=== ESP PORTATEC DEBUG MODE ===");
+  DEBUG_PRINTLN("Device starting up...");
+#endif
 
   pinMode(deviceConfig.getPulsePin(), OUTPUT);
   digitalWrite(deviceConfig.getPulsePin(), LOW);
