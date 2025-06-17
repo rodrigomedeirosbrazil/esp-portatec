@@ -198,9 +198,10 @@ void Sync::sendDeviceStatus() {
   doc["channel"] = channelName;
 
   JsonObject data = doc.createNestedObject("data");
+  data["chip-id"] = deviceId;
   data["millis"] = millis();
-  data["wifi_strength"] = constrain(map(WiFi.RSSI(), -100, -30, 0, 100), 0, 100); // Convert RSSI to percentage (0-100%)
-  data["firmware_version"] = DeviceConfig::FIRMWARE_VERSION;
+  data["wifi-strength"] = constrain(map(WiFi.RSSI(), -100, -30, 0, 100), 0, 100); // Convert RSSI to percentage (0-100%)
+  data["firmware-version"] = DeviceConfig::FIRMWARE_VERSION;
 
   String message;
   serializeJson(doc, message);
@@ -231,7 +232,7 @@ void Sync::sendCommandAck(String commandName) {
   doc["channel"] = channelName;
 
   JsonObject data = doc.createNestedObject("data");
-  data["chipId"] = deviceId;
+  data["chip-id"] = deviceId;
   data["command"] = commandName;
 
   String message;
@@ -248,7 +249,7 @@ void Sync::updateFirmware() {
   std::unique_ptr<BearSSL::WiFiClientSecure>client(new BearSSL::WiFiClientSecure);
   client->setInsecure();
 
-  String url = "https://portatec.medeirostec.com.br/api/firmware/?deviceId=" + deviceId + "&version=" + DeviceConfig::FIRMWARE_VERSION;
+  String url = "https://portatec.medeirostec.com.br/api/firmware/?chip-id=" + deviceId + "&version=" + DeviceConfig::FIRMWARE_VERSION;
   DEBUG_PRINT("[Firmware] Update URL: ");
   DEBUG_PRINTLN(url);
 
