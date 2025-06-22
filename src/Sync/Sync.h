@@ -31,6 +31,7 @@ class Sync {
     void connect();
     bool isConnected();
     bool isSyncing();
+    unsigned long getLastSuccessfulSync();
 };
 
 #endif

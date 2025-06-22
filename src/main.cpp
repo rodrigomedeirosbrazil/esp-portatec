@@ -15,8 +15,8 @@ DNSServer dnsServer;
 WiFiClient client;
 
 DeviceConfig deviceConfig;
-Webserver webserver(&deviceConfig);
 Sync sync(&deviceConfig);
+Webserver webserver(&deviceConfig, &sync);
 
 unsigned long lastCheck = 0;
 unsigned long lastSyncCheck = 0;

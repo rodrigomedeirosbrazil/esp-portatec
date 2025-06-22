@@ -74,6 +74,10 @@ bool Sync::isSyncing() {
   return connected && (millis() - lastSuccessfulSync < 120000);
 }
 
+unsigned long Sync::getLastSuccessfulSync() {
+  return lastSuccessfulSync;
+}
+
 void Sync::onWebSocketEvent(WStype_t type, uint8_t * payload, size_t length) {
   switch(type) {
     case WStype_DISCONNECTED:
