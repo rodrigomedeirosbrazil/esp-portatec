@@ -4,7 +4,7 @@
 
 const char DeviceConfig::defaultDeviceName[] = "ESP-PORTATEC";
 const char DeviceConfig::defaultPassword[] = "123456789";
-const char* DeviceConfig::FIRMWARE_VERSION = "2025-06-22";
+const char* DeviceConfig::FIRMWARE_VERSION = "2025-06-23";
 
 DeviceConfig::DeviceConfig() : configured(false) {
     EEPROM.begin(512);
