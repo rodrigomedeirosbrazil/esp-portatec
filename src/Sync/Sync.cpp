@@ -39,12 +39,21 @@ void Sync::handle() {
     if (millis() - lastPing > 5000) {
       // Only try to connect if WiFi is connected and not in AP mode
       if (WiFi.status() == WL_CONNECTED) {
+        DEBUG_PRINTLN("[WebSocket] Attempting reconnection...");
         connect();
       } else {
         DEBUG_PRINTLN("[WebSocket] Skipping connection attempt - WiFi not connected");
       }
       lastPing = millis();
     }
+  }
+
+  // Check for connection timeout and force reconnection if needed
+  if (connected && (millis() - lastSuccessfulSync > 300000)) { // 5 minutes timeout
+    DEBUG_PRINTLN("[WebSocket] Connection timeout detected, forcing reconnection...");
+    connected = false;
+    subscribed = false;
+    webSocket.disconnect();
   }
 }
 
@@ -57,6 +66,11 @@ void Sync::connect() {
     }
 
     DEBUG_PRINTLN("Attempting to connect to WebSocket...");
+
+    // First disconnect any existing connection
+    webSocket.disconnect();
+    delay(100); // Small delay to ensure disconnection
+
     // webSocket.begin("192.168.15.104", 8888, "/app/" + API_KEY + "?protocol=7&client=js&version=7.0.0&flash=false");
     webSocket.beginSSL(
       "portatec.medeirostec.com.br",
@@ -89,6 +103,7 @@ void Sync::onWebSocketEvent(WStype_t type, uint8_t * payload, size_t length) {
     case WStype_CONNECTED:
       DEBUG_PRINT("[WebSocket] Connected to: ");
       DEBUG_PRINTLN((char*)payload);
+      // Note: Don't set connected = true here, wait for connection_established
       connected = false;
       subscribed = false;
       lastSuccessfulSync = millis();
@@ -98,6 +113,13 @@ void Sync::onWebSocketEvent(WStype_t type, uint8_t * payload, size_t length) {
       DEBUG_PRINT("[WebSocket] Received message: ");
       DEBUG_PRINTLN((char*)payload);
       handlePusherMessage(String((char*)payload));
+      break;
+
+    case WStype_ERROR:
+      DEBUG_PRINT("[WebSocket] Error: ");
+      DEBUG_PRINTLN((char*)payload);
+      connected = false;
+      subscribed = false;
       break;
 
     default:
