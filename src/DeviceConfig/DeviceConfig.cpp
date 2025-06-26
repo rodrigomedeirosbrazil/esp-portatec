@@ -19,6 +19,7 @@ void DeviceConfig::initDefaultConfig() {
   config.wifiSSID[0] = '\0';        // Empty SSID by default
   config.wifiNetworkPass[0] = '\0'; // Empty password by default
   config.pulsePin = 3; // Default pin
+  config.sensorPin = 1; // Default sensor pin
 }
 
 void DeviceConfig::loadConfig() {
@@ -52,6 +53,10 @@ void DeviceConfig::setPassword(const char* password) {
 
 void DeviceConfig::setPulsePin(uint8_t pin) {
     config.pulsePin = pin;
+}
+
+void DeviceConfig::setSensorPin(uint8_t pin) {
+    config.sensorPin = pin;
 }
 
 void DeviceConfig::setWifiSSID(const char* ssid) {

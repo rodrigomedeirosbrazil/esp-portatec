@@ -50,6 +50,7 @@ void Webserver::handleConfig() {
   html += "<input type='text' name='devicename' placeholder='Device Name' value='" + String(instance->deviceConfig->getDeviceName()) + "' required><br>";
   html += "<input type='password' name='password' placeholder='WiFi Password' value='" + String(instance->deviceConfig->getPassword()) + "' required><br>";
   html += "<input type='number' name='pulsepin' placeholder='Pulse Pin' value='" + String(instance->deviceConfig->getPulsePin()) + "' required><br>";
+  html += "<input type='number' name='sensorpin' placeholder='Sensor Pin' value='" + String(instance->deviceConfig->getSensorPin()) + "' required><br>";
   html += "</div>";
 
   // WiFi Network Configuration Section
@@ -65,17 +66,33 @@ void Webserver::handleConfig() {
 }
 
 void Webserver::handleSaveConfig() {
-  if (instance->server.hasArg("devicename") && instance->server.hasArg("password") && instance->server.hasArg("pulsepin")) {
+  if (
+    instance->server.hasArg("devicename")
+    && instance->server.hasArg("password")
+    && instance->server.hasArg("pulsepin")
+    && instance->server.hasArg("sensorpin")
+    && instance->server.hasArg("wifissid")
+    && instance->server.hasArg("wifipass")
+  ) {
     String deviceName = instance->server.arg("devicename");
     String password = instance->server.arg("password");
     String pulsePinStr = instance->server.arg("pulsepin");
+    String sensorPinStr = instance->server.arg("sensorpin");
     String wifiSSID = instance->server.arg("wifissid");
     String wifiPass = instance->server.arg("wifipass");
 
-    if (deviceName.length() > 0 && password.length() > 0 && pulsePinStr.length() > 0) {
+    if (
+      deviceName.length() > 0
+      && password.length() > 0
+      && pulsePinStr.length() > 0
+      && sensorPinStr.length() > 0
+      && wifiSSID.length() > 0
+      && wifiPass.length() > 0
+    ) {
       instance->deviceConfig->setDeviceName(deviceName.c_str());
       instance->deviceConfig->setPassword(password.c_str());
       instance->deviceConfig->setPulsePin(pulsePinStr.toInt());
+      instance->deviceConfig->setSensorPin(sensorPinStr.toInt());
 
       // Set WiFi network configuration if provided
       if (wifiSSID.length() > 0) {
@@ -110,6 +127,7 @@ void Webserver::handlePulse() {
 void Webserver::handleRoot() {
   String html = "<!DOCTYPE html><html><head>";
   html += "<meta name='viewport' content='width=device-width, initial-scale=1'><meta charset=\"UTF-8\">";
+  html += "<meta http-equiv='refresh' content='10'>";  // Auto refresh every 10 seconds
   html += "<title>ESP-PORTATEC Control</title>";
   html += "<style>";
   html += "body { font-family: Arial, sans-serif; margin: 20px; text-align: center; }";
@@ -118,10 +136,20 @@ void Webserver::handleRoot() {
   html += "button:disabled { background-color: #cccccc; cursor: not-allowed; }";
   html += ".working { background-color: #ff9800 !important; }";
   html += ".button-container { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; margin: 20px 0; }";
+  html += ".status-display { font-size: 18px; margin: 20px auto; padding: 15px; border-radius: 8px; max-width: 300px; width: 100%; }";
+  html += ".status-closed { background-color: #f44336; color: white; }";
+  html += ".status-open { background-color: #4CAF50; color: white; }";
   html += "</style></head>";
   html += "<body>";
   html += "<h1>ESP-PORTATEC Control</h1>";
   html += "<p>Dispositivo: " + String(instance->deviceConfig->getDeviceName()) + "</p>";
+
+  // Sensor status display
+  bool sensorState = digitalRead(instance->deviceConfig->getSensorPin());
+  html += "<div class='status-display " + String(sensorState ? "status-closed" : "status-open") + "'>";
+  html += "Status: " + String(sensorState ? "FECHADO" : "ABERTO");
+  html += "</div>";
+
   html += "<div class='button-container'>";
   html += "<button id='pulseButton' onclick='pulseGpio()'>Abrir</button>";
   html += "<button onclick=\"window.location.href='/info'\">Informações</button>";
@@ -196,6 +224,16 @@ void Webserver::handleInfo() {
   unsigned long minutes = (uptime % 3600) / 60;
   unsigned long seconds = uptime % 60;
   html += "<span class='info-value'>" + String(days) + "d " + String(hours) + "h " + String(minutes) + "m " + String(seconds) + "s</span>";
+  html += "</div>";
+  html += "<div class='info-row'>";
+  html += "<span class='info-label'>Pino Pulso:</span>";
+  html += "<span class='info-value'>GPIO " + String(instance->deviceConfig->getPulsePin()) + "</span>";
+  html += "</div>";
+  html += "<div class='info-row'>";
+  html += "<span class='info-label'>Pino Sensor:</span>";
+  html += "<span class='info-value'>GPIO " + String(instance->deviceConfig->getSensorPin()) + " (";
+  html += digitalRead(instance->deviceConfig->getSensorPin()) ? "ALTO" : "BAIXO";
+  html += ")</span>";
   html += "</div>";
   html += "</div>";
 

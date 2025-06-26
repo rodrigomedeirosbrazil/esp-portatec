@@ -8,7 +8,7 @@ class DeviceConfig {
 private:
     static const int CONFIG_ADDRESS = 0;
     static const uint32_t CONFIG_SIGNATURE = 0x504F5254;
-    static const uint8_t CONFIG_VERSION = 3;
+    static const uint8_t CONFIG_VERSION = 4;
 
     static const char defaultDeviceName[];
     static const char defaultPassword[];
@@ -21,6 +21,7 @@ private:
         char wifiSSID[32];      // SSID of the WiFi network to connect to
         char wifiNetworkPass[32]; // Password of the WiFi network to connect to
         uint8_t pulsePin;
+        uint8_t sensorPin;
     };
 
     Config config;
@@ -36,11 +37,13 @@ public:
     const char* getWifiSSID() const { return config.wifiSSID; }
     const char* getWifiNetworkPass() const { return config.wifiNetworkPass; }
     uint8_t getPulsePin() const { return config.pulsePin; }
+    uint8_t getSensorPin() const { return config.sensorPin; }
     void setDeviceName(const char* name);
     void setPassword(const char* password);
     void setWifiSSID(const char* ssid);
     void setWifiNetworkPass(const char* password);
     void setPulsePin(uint8_t pin);
+    void setSensorPin(uint8_t pin);
     void initDefaultConfig();
     void loadConfig();
     void saveConfig();

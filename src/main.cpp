@@ -23,6 +23,11 @@ unsigned long lastSyncCheck = 0;
 unsigned long apModeStartTime = 0;
 unsigned int syncTimeoutCount = 0;
 
+// Variáveis para controle de eventos do sensor
+int lastSensorValue = -1;
+unsigned long lastSensorCheck = 0;
+const unsigned long SENSOR_CHECK_INTERVAL = 100; // Verificar a cada 100ms
+
 void setup() {
   delay(1000);
 
@@ -37,7 +42,12 @@ void setup() {
   pinMode(deviceConfig.getPulsePin(), OUTPUT);
   digitalWrite(deviceConfig.getPulsePin(), LOW);
 
-  DEBUG_PRINTLN("Pulse pin configured");
+  pinMode(deviceConfig.getSensorPin(), INPUT);
+
+  DEBUG_PRINTLN("Pulse and sensor pins configured");
+
+  // Inicializar sistema de eventos do sensor
+  initSensorEvents();
 
   WiFi.mode(WIFI_AP_STA);
   setupAPMode();
@@ -62,6 +72,9 @@ void loop() {
   handleConnection();
 
   sync.handle();
+
+  // Verificar eventos do sensor
+  checkSensorEvents();
 }
 
 void setupAPMode() {
@@ -128,5 +141,67 @@ void reconnectWifi() {
   WiFi.disconnect();
   WiFi.begin(deviceConfig.getWifiSSID(), deviceConfig.getWifiNetworkPass());
   waitForWifiConnection();
+}
+
+void initSensorEvents() {
+  DEBUG_PRINTLN("Initializing sensor event system...");
+  // Ler valor inicial do sensor
+  lastSensorValue = digitalRead(deviceConfig.getSensorPin());
+  lastSensorCheck = millis();
+  DEBUG_PRINT("Initial sensor value: ");
+  DEBUG_PRINTLN(lastSensorValue);
+}
+
+void checkSensorEvents() {
+  // Verificar apenas no intervalo definido para evitar leituras excessivas
+  if (millis() - lastSensorCheck < SENSOR_CHECK_INTERVAL) {
+    return;
+  }
+
+  lastSensorCheck = millis();
+
+  // Ler valor atual do sensor
+  int currentSensorValue = digitalRead(deviceConfig.getSensorPin());
+
+  // Verificar se houve mudança
+  if (currentSensorValue != lastSensorValue) {
+    DEBUG_PRINT("Sensor change detected! Previous: ");
+    DEBUG_PRINT(lastSensorValue);
+    DEBUG_PRINT(", Current: ");
+    DEBUG_PRINTLN(currentSensorValue);
+
+    // Disparar evento de mudança
+    onSensorChange(currentSensorValue, lastSensorValue);
+
+    // Atualizar valor anterior
+    lastSensorValue = currentSensorValue;
+  }
+}
+
+void onSensorChange(int currentValue, int previousValue) {
+  DEBUG_PRINTLN("=== SENSOR EVENT TRIGGERED ===");
+  DEBUG_PRINT("Sensor changed from ");
+  DEBUG_PRINT(previousValue);
+  DEBUG_PRINT(" to ");
+  DEBUG_PRINTLN(currentValue);
+
+  // Aqui você pode adicionar a lógica que deve ser executada quando o sensor mudar
+  // Exemplos:
+
+  if (currentValue == HIGH && previousValue == LOW) {
+    DEBUG_PRINTLN("Sensor activated (LOW -> HIGH)");
+    // Adicione aqui a lógica para quando o sensor for ativado
+    // Por exemplo: acionar o pulso, enviar dados, etc.
+
+  } else if (currentValue == LOW && previousValue == HIGH) {
+    DEBUG_PRINTLN("Sensor deactivated (HIGH -> LOW)");
+    // Adicione aqui a lógica para quando o sensor for desativado
+
+  }
+
+  // Você também pode disparar uma sincronização quando o sensor mudar
+  // sync.triggerSync();
+
+  DEBUG_PRINTLN("=== END SENSOR EVENT ===");
 }
 
