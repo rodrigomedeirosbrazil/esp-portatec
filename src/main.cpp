@@ -6,6 +6,7 @@
 #include "DeviceConfig/DeviceConfig.h"
 #include "Webserver/Webserver.h"
 #include "Sync/Sync.h"
+#include "Sensor/Sensor.h"
 
 #include "globals.h"
 
@@ -17,16 +18,12 @@ WiFiClient client;
 DeviceConfig deviceConfig;
 Sync sync(&deviceConfig);
 Webserver webserver(&deviceConfig, &sync);
+Sensor sensor(&deviceConfig);
 
 unsigned long lastCheck = 0;
 unsigned long lastSyncCheck = 0;
 unsigned long apModeStartTime = 0;
 unsigned int syncTimeoutCount = 0;
-
-
-int lastSensorValue = -1;
-unsigned long lastSensorCheck = 0;
-const unsigned long SENSOR_CHECK_INTERVAL = 100;
 
 void setup() {
   delay(1000);
@@ -42,14 +39,9 @@ void setup() {
   pinMode(deviceConfig.getPulsePin(), OUTPUT);
   digitalWrite(deviceConfig.getPulsePin(), LOW);
 
-  if (deviceConfig.getSensorPin() != DeviceConfig::UNCONFIGURED_PIN) {
-    pinMode(deviceConfig.getSensorPin(), INPUT);
-  }
+  sensor.init();
 
   DEBUG_PRINTLN("Pulse and sensor pins configured");
-
-  // Inicializar sistema de eventos do sensor
-  initSensorEvents();
 
   WiFi.mode(WIFI_AP_STA);
   setupAPMode();
@@ -75,7 +67,7 @@ void loop() {
 
   sync.handle();
 
-  checkSensorEvents();
+  sensor.handle();
 }
 
 void setupAPMode() {
@@ -142,52 +134,5 @@ void reconnectWifi() {
   WiFi.disconnect();
   WiFi.begin(deviceConfig.getWifiSSID(), deviceConfig.getWifiNetworkPass());
   waitForWifiConnection();
-}
-
-void initSensorEvents() {
-  if (deviceConfig.getSensorPin() == DeviceConfig::UNCONFIGURED_PIN) return;
-  DEBUG_PRINTLN("Initializing sensor event system...");
-  lastSensorValue = digitalRead(deviceConfig.getSensorPin());
-  lastSensorCheck = millis();
-  DEBUG_PRINT("Initial sensor value: ");
-  DEBUG_PRINTLN(lastSensorValue);
-}
-
-void checkSensorEvents() {
-  if (deviceConfig.getSensorPin() == DeviceConfig::UNCONFIGURED_PIN) return;
-  if (millis() - lastSensorCheck < SENSOR_CHECK_INTERVAL) {
-    return;
-  }
-
-  lastSensorCheck = millis();
-
-  int currentSensorValue = digitalRead(deviceConfig.getSensorPin());
-
-  if (currentSensorValue != lastSensorValue) {
-    DEBUG_PRINT("Sensor change detected! Previous: ");
-    DEBUG_PRINT(lastSensorValue);
-    DEBUG_PRINT(", Current: ");
-    DEBUG_PRINTLN(currentSensorValue);
-
-    onSensorChange(currentSensorValue, lastSensorValue);
-
-    lastSensorValue = currentSensorValue;
-  }
-}
-
-void onSensorChange(int currentValue, int previousValue) {
-  DEBUG_PRINTLN("=== SENSOR EVENT TRIGGERED ===");
-  DEBUG_PRINT("Sensor changed from ");
-  DEBUG_PRINT(previousValue);
-  DEBUG_PRINT(" to ");
-  DEBUG_PRINTLN(currentValue);
-
-  if (currentValue == HIGH && previousValue == LOW) {
-    DEBUG_PRINTLN("Sensor activated (LOW -> HIGH)");
-  } else if (currentValue == LOW && previousValue == HIGH) {
-    DEBUG_PRINTLN("Sensor deactivated (HIGH -> LOW)");
-  }
-
-  DEBUG_PRINTLN("=== END SENSOR EVENT ===");
 }
 
