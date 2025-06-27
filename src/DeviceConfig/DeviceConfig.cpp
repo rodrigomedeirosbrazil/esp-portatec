@@ -19,7 +19,7 @@ void DeviceConfig::initDefaultConfig() {
   config.wifiSSID[0] = '\0';        // Empty SSID by default
   config.wifiNetworkPass[0] = '\0'; // Empty password by default
   config.pulsePin = 3; // Default pin
-  config.sensorPin = 1; // Default sensor pin
+  config.sensorPin = UNCONFIGURED_PIN; // Default sensor pin
 }
 
 void DeviceConfig::loadConfig() {

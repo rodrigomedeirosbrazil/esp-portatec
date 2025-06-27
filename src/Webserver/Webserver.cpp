@@ -50,7 +50,7 @@ void Webserver::handleConfig() {
   html += "<input type='text' name='devicename' placeholder='Device Name' value='" + String(instance->deviceConfig->getDeviceName()) + "' required><br>";
   html += "<input type='password' name='password' placeholder='WiFi Password' value='" + String(instance->deviceConfig->getPassword()) + "' required><br>";
   html += "<input type='number' name='pulsepin' placeholder='Pulse Pin' value='" + String(instance->deviceConfig->getPulsePin()) + "' required><br>";
-  html += "<input type='number' name='sensorpin' placeholder='Sensor Pin' value='" + String(instance->deviceConfig->getSensorPin()) + "' required><br>";
+  html += "<input type='number' name='sensorpin' placeholder='Sensor Pin' value='" + (instance->deviceConfig->getSensorPin() == DeviceConfig::UNCONFIGURED_PIN ? "" : String(instance->deviceConfig->getSensorPin())) + "'><br>";
   html += "</div>";
 
   // WiFi Network Configuration Section
@@ -85,14 +85,16 @@ void Webserver::handleSaveConfig() {
       deviceName.length() > 0
       && password.length() > 0
       && pulsePinStr.length() > 0
-      && sensorPinStr.length() > 0
-      && wifiSSID.length() > 0
-      && wifiPass.length() > 0
     ) {
       instance->deviceConfig->setDeviceName(deviceName.c_str());
       instance->deviceConfig->setPassword(password.c_str());
       instance->deviceConfig->setPulsePin(pulsePinStr.toInt());
-      instance->deviceConfig->setSensorPin(sensorPinStr.toInt());
+      
+      if (sensorPinStr.length() > 0) {
+        instance->deviceConfig->setSensorPin(sensorPinStr.toInt());
+      } else {
+        instance->deviceConfig->setSensorPin(DeviceConfig::UNCONFIGURED_PIN);
+      }
 
       // Set WiFi network configuration if provided
       if (wifiSSID.length() > 0) {
@@ -145,10 +147,12 @@ void Webserver::handleRoot() {
   html += "<p>Dispositivo: " + String(instance->deviceConfig->getDeviceName()) + "</p>";
 
   // Sensor status display
-  bool sensorState = digitalRead(instance->deviceConfig->getSensorPin());
-  html += "<div class='status-display " + String(sensorState ? "status-closed" : "status-open") + "'>";
-  html += "Status: " + String(sensorState ? "FECHADO" : "ABERTO");
-  html += "</div>";
+  if (instance->deviceConfig->getSensorPin() != DeviceConfig::UNCONFIGURED_PIN) {
+    bool sensorState = digitalRead(instance->deviceConfig->getSensorPin());
+    html += "<div class='status-display " + String(sensorState ? "status-closed" : "status-open") + "'>";
+    html += "Status: " + String(sensorState ? "FECHADO" : "ABERTO");
+    html += "</div>";
+  }
 
   html += "<div class='button-container'>";
   html += "<button id='pulseButton' onclick='pulseGpio()'>Abrir</button>";
@@ -231,9 +235,11 @@ void Webserver::handleInfo() {
   html += "</div>";
   html += "<div class='info-row'>";
   html += "<span class='info-label'>Pino Sensor:</span>";
-  html += "<span class='info-value'>GPIO " + String(instance->deviceConfig->getSensorPin()) + " (";
-  html += digitalRead(instance->deviceConfig->getSensorPin()) ? "ALTO" : "BAIXO";
-  html += ")</span>";
+  if (instance->deviceConfig->getSensorPin() != DeviceConfig::UNCONFIGURED_PIN) {
+    html += "<span class='info-value'>GPIO " + String(instance->deviceConfig->getSensorPin()) + " (" + (digitalRead(instance->deviceConfig->getSensorPin()) ? "ALTO" : "BAIXO") + ")</span>";
+  } else {
+    html += "<span class='info-value'>N/A</span>";
+  }
   html += "</div>";
   html += "</div>";
 

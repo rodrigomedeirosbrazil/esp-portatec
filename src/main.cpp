@@ -42,7 +42,9 @@ void setup() {
   pinMode(deviceConfig.getPulsePin(), OUTPUT);
   digitalWrite(deviceConfig.getPulsePin(), LOW);
 
-  pinMode(deviceConfig.getSensorPin(), INPUT);
+  if (deviceConfig.getSensorPin() != DeviceConfig::UNCONFIGURED_PIN) {
+    pinMode(deviceConfig.getSensorPin(), INPUT);
+  }
 
   DEBUG_PRINTLN("Pulse and sensor pins configured");
 
@@ -143,6 +145,7 @@ void reconnectWifi() {
 }
 
 void initSensorEvents() {
+  if (deviceConfig.getSensorPin() == DeviceConfig::UNCONFIGURED_PIN) return;
   DEBUG_PRINTLN("Initializing sensor event system...");
   lastSensorValue = digitalRead(deviceConfig.getSensorPin());
   lastSensorCheck = millis();
@@ -151,6 +154,7 @@ void initSensorEvents() {
 }
 
 void checkSensorEvents() {
+  if (deviceConfig.getSensorPin() == DeviceConfig::UNCONFIGURED_PIN) return;
   if (millis() - lastSensorCheck < SENSOR_CHECK_INTERVAL) {
     return;
   }

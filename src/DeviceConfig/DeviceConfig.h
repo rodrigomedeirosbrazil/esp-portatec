@@ -28,6 +28,7 @@ private:
     bool configured;
 
 public:
+    static const uint8_t UNCONFIGURED_PIN = 255;
     static const char* FIRMWARE_VERSION;
 
     DeviceConfig();
