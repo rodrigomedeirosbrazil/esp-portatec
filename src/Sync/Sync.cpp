@@ -239,6 +239,27 @@ void Sync::sendDeviceStatus() {
   webSocket.sendTXT(message);
 }
 
+void Sync::sendSensorStatus(int value) {
+  DEBUG_PRINT("[Pusher] Sending sensor status to channel: ");
+  DEBUG_PRINTLN(channelName);
+
+  DynamicJsonDocument doc(256);
+  doc["event"] = "client-sensor-status";
+  doc["channel"] = channelName;
+
+  JsonObject data = doc.createNestedObject("data");
+  data["chip-id"] = deviceId;
+  data["value"] = value;
+
+  String message;
+  serializeJson(doc, message);
+
+  DEBUG_PRINT("[Pusher] Sending sensor status message: ");
+  DEBUG_PRINTLN(message);
+
+  webSocket.sendTXT(message);
+}
+
 void Sync::pulse() {
   uint8_t pin = deviceConfig->getPulsePin();
   DEBUG_PRINT("[Device] Executing pulse on pin: ");

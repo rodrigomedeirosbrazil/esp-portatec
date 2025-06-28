@@ -18,7 +18,7 @@ WiFiClient client;
 DeviceConfig deviceConfig;
 Sync sync(&deviceConfig);
 Webserver webserver(&deviceConfig, &sync);
-Sensor sensor(&deviceConfig);
+Sensor sensor(&deviceConfig, &sync);
 
 unsigned long lastCheck = 0;
 unsigned long lastSyncCheck = 0;

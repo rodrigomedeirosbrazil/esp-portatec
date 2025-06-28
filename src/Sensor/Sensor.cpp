@@ -1,8 +1,9 @@
 #include "Sensor.h"
 #include "../globals.h"
 
-Sensor::Sensor(DeviceConfig *deviceConfig) {
+Sensor::Sensor(DeviceConfig *deviceConfig, Sync *sync) {
     this->deviceConfig = deviceConfig;
+    this->sync = sync;
     this->lastSensorValue = -1;
     this->lastSensorCheck = 0;
 }
@@ -45,6 +46,10 @@ void Sensor::onSensorChange(int currentValue, int previousValue) {
     DEBUG_PRINT(previousValue);
     DEBUG_PRINT(" to ");
     DEBUG_PRINTLN(currentValue);
+
+    if (sync->isConnected()) {
+        sync->sendSensorStatus(currentValue);
+    }
 
     if (currentValue == HIGH && previousValue == LOW) {
         DEBUG_PRINTLN("Sensor activated (LOW -> HIGH)");

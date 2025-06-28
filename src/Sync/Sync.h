@@ -32,6 +32,7 @@ class Sync {
     bool isConnected();
     bool isSyncing();
     unsigned long getLastSuccessfulSync();
+    void sendSensorStatus(int value);
 };
 
 #endif
