@@ -254,6 +254,7 @@ void Sync::sendSensorStatus(int value) {
 
   JsonObject data = doc.createNestedObject("data");
   data["chip-id"] = deviceId;
+  data["gpio"] = deviceConfig->getSensorPin();
   data["value"] = value;
 
   String message;
@@ -274,11 +275,11 @@ void Sync::pulse() {
   digitalWrite(pin, inverted ? LOW : HIGH);
   delay(500);
   digitalWrite(pin, inverted ? HIGH : LOW);
-  sendCommandAck("pulse");
+  sendCommandAck("pulse", pin);
   DEBUG_PRINTLN("[Device] Pulse completed");
 }
 
-void Sync::sendCommandAck(String commandName) {
+void Sync::sendCommandAck(String commandName, uint8_t gpio = 255) {
   DEBUG_PRINT("[Pusher] Sending command ack for command: ");
   DEBUG_PRINTLN(commandName);
 
@@ -288,6 +289,7 @@ void Sync::sendCommandAck(String commandName) {
 
   JsonObject data = doc.createNestedObject("data");
   data["chip-id"] = deviceId;
+  data["gpio"] = gpio;
   data["command"] = commandName;
 
   String message;
