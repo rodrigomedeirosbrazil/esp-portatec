@@ -37,7 +37,7 @@ void setup() {
 #endif
 
   pinMode(deviceConfig.getPulsePin(), OUTPUT);
-  digitalWrite(deviceConfig.getPulsePin(), LOW);
+  digitalWrite(deviceConfig.getPulsePin(), deviceConfig.getPulseInverted() ? HIGH : LOW);
 
   sensor.init();
 

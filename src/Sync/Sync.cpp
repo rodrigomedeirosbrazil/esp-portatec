@@ -262,11 +262,13 @@ void Sync::sendSensorStatus(int value) {
 
 void Sync::pulse() {
   uint8_t pin = deviceConfig->getPulsePin();
+  bool inverted = deviceConfig->getPulseInverted();
+
   DEBUG_PRINT("[Device] Executing pulse on pin: ");
   DEBUG_PRINTLN(pin);
-  digitalWrite(pin, HIGH);
+  digitalWrite(pin, inverted ? LOW : HIGH);
   delay(500);
-  digitalWrite(pin, LOW);
+  digitalWrite(pin, inverted ? HIGH : LOW);
   sendCommandAck("pulse");
   DEBUG_PRINTLN("[Device] Pulse completed");
 }

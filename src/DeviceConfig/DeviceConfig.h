@@ -22,6 +22,7 @@ private:
         char wifiNetworkPass[32]; // Password of the WiFi network to connect to
         uint8_t pulsePin;
         uint8_t sensorPin;
+        bool pulseInverted;
     };
 
     Config config;
@@ -39,12 +40,14 @@ public:
     const char* getWifiNetworkPass() const { return config.wifiNetworkPass; }
     uint8_t getPulsePin() const { return config.pulsePin; }
     uint8_t getSensorPin() const { return config.sensorPin; }
+    bool getPulseInverted() const { return config.pulseInverted; }
     void setDeviceName(const char* name);
     void setPassword(const char* password);
     void setWifiSSID(const char* ssid);
     void setWifiNetworkPass(const char* password);
     void setPulsePin(uint8_t pin);
     void setSensorPin(uint8_t pin);
+    void setPulseInverted(bool inverted);
     void initDefaultConfig();
     void loadConfig();
     void saveConfig();

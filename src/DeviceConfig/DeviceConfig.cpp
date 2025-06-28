@@ -20,6 +20,7 @@ void DeviceConfig::initDefaultConfig() {
   config.wifiNetworkPass[0] = '\0'; // Empty password by default
   config.pulsePin = 3; // Default pin
   config.sensorPin = UNCONFIGURED_PIN; // Default sensor pin
+  config.pulseInverted = false; // Default pulse inverted
 }
 
 void DeviceConfig::loadConfig() {
@@ -57,6 +58,10 @@ void DeviceConfig::setPulsePin(uint8_t pin) {
 
 void DeviceConfig::setSensorPin(uint8_t pin) {
     config.sensorPin = pin;
+}
+
+void DeviceConfig::setPulseInverted(bool inverted) {
+    config.pulseInverted = inverted;
 }
 
 void DeviceConfig::setWifiSSID(const char* ssid) {

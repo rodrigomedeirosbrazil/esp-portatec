@@ -50,6 +50,7 @@ void Webserver::handleConfig() {
   html += "<input type='text' name='devicename' placeholder='Device Name' value='" + String(instance->deviceConfig->getDeviceName()) + "' required><br>";
   html += "<input type='password' name='password' placeholder='WiFi Password' value='" + String(instance->deviceConfig->getPassword()) + "' required><br>";
   html += "<input type='number' name='pulsepin' placeholder='Pulse Pin' value='" + String(instance->deviceConfig->getPulsePin()) + "' required><br>";
+  html += String("<input type='checkbox' name='pulseinverted' id='pulseinverted' value='true'") + (instance->deviceConfig->getPulseInverted() ? " checked" : "") + "><label for='pulseinverted'>Invert Pulse</label><br>";
   html += "<input type='number' name='sensorpin' placeholder='Sensor Pin' value='" + (instance->deviceConfig->getSensorPin() == DeviceConfig::UNCONFIGURED_PIN ? "" : String(instance->deviceConfig->getSensorPin())) + "'><br>";
   html += "</div>";
 
@@ -77,6 +78,7 @@ void Webserver::handleSaveConfig() {
     String deviceName = instance->server.arg("devicename");
     String password = instance->server.arg("password");
     String pulsePinStr = instance->server.arg("pulsepin");
+    String pulseInvertedStr = instance->server.arg("pulseinverted");
     String sensorPinStr = instance->server.arg("sensorpin");
     String wifiSSID = instance->server.arg("wifissid");
     String wifiPass = instance->server.arg("wifipass");
@@ -89,6 +91,7 @@ void Webserver::handleSaveConfig() {
       instance->deviceConfig->setDeviceName(deviceName.c_str());
       instance->deviceConfig->setPassword(password.c_str());
       instance->deviceConfig->setPulsePin(pulsePinStr.toInt());
+      instance->deviceConfig->setPulseInverted(pulseInvertedStr == "true");
       
       if (sensorPinStr.length() > 0) {
         instance->deviceConfig->setSensorPin(sensorPinStr.toInt());
@@ -120,9 +123,10 @@ void Webserver::handleNotFound() {
 
 void Webserver::handlePulse() {
   uint8_t pin = instance->deviceConfig->getPulsePin();
-  digitalWrite(pin, HIGH);
+  bool inverted = instance->deviceConfig->getPulseInverted();
+  digitalWrite(pin, inverted ? LOW : HIGH);
   delay(500);
-  digitalWrite(pin, LOW);
+  digitalWrite(pin, inverted ? HIGH : LOW);
   instance->server.send(200, "text/plain", "GPIO " + String(pin) + " toggled");
 }
 
