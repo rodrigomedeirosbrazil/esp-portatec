@@ -220,7 +220,7 @@ void Sync::sendDeviceStatus() {
   DEBUG_PRINT("[Pusher] Sending device status to channel: ");
   DEBUG_PRINTLN(channelName);
 
-  DynamicJsonDocument doc(256);
+  DynamicJsonDocument doc(1024);
   doc["event"] = "client-device-status";
   doc["channel"] = channelName;
 
@@ -229,6 +229,11 @@ void Sync::sendDeviceStatus() {
   data["millis"] = millis();
   data["wifi-strength"] = constrain(map(WiFi.RSSI(), -100, -30, 0, 100), 0, 100); // Convert RSSI to percentage (0-100%)
   data["firmware-version"] = DeviceConfig::FIRMWARE_VERSION;
+  data["device-name"] = deviceConfig->getDeviceName();
+  data["wifi-ssid"] = deviceConfig->getWifiSSID();
+  data["pulse-pin"] = deviceConfig->getPulsePin();
+  data["sensor-pin"] = deviceConfig->getSensorPin();
+  data["pulse-inverted"] = deviceConfig->getPulseInverted();
 
   String message;
   serializeJson(doc, message);
