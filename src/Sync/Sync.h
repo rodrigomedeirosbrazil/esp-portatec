@@ -3,13 +3,12 @@
 
 #include <WebSocketsClient.h>
 #include <ArduinoJson.h>
-#include "DeviceConfig/DeviceConfig.h"
+#include "globals.h"
 
 class Sync {
   private:
     unsigned long lastPing;
     unsigned long lastSuccessfulSync;
-    DeviceConfig *deviceConfig;
     String deviceId;
     String channelName;
     WebSocketsClient webSocket;
@@ -26,7 +25,7 @@ class Sync {
     void updateFirmware();
 
   public:
-    Sync(DeviceConfig *deviceConfig);
+    Sync();
     void handle();
     void connect();
     bool isConnected();

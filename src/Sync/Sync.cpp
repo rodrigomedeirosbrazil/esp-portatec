@@ -7,8 +7,7 @@
 #include "Sync.h"
 #include "../globals.h"
 
-Sync::Sync(DeviceConfig *deviceConfig) {
-  this->deviceConfig = deviceConfig;
+Sync::Sync() {
   lastPing = 0;
   lastSuccessfulSync = 0;
   connected = false;
@@ -229,11 +228,11 @@ void Sync::sendDeviceStatus() {
   data["millis"] = millis();
   data["wifi-strength"] = constrain(map(WiFi.RSSI(), -100, -30, 0, 100), 0, 100); // Convert RSSI to percentage (0-100%)
   data["firmware-version"] = DeviceConfig::FIRMWARE_VERSION;
-  data["device-name"] = deviceConfig->getDeviceName();
-  data["wifi-ssid"] = deviceConfig->getWifiSSID();
-  data["pulse-pin"] = deviceConfig->getPulsePin();
-  data["sensor-pin"] = deviceConfig->getSensorPin();
-  data["pulse-inverted"] = deviceConfig->getPulseInverted();
+  data["device-name"] = deviceConfig.getDeviceName();
+  data["wifi-ssid"] = deviceConfig.getWifiSSID();
+  data["pulse-pin"] = deviceConfig.getPulsePin();
+  data["sensor-pin"] = deviceConfig.getSensorPin();
+  data["pulse-inverted"] = deviceConfig.getPulseInverted();
 
   String message;
   serializeJson(doc, message);
@@ -254,7 +253,7 @@ void Sync::sendSensorStatus(int value) {
 
   JsonObject data = doc.createNestedObject("data");
   data["chip-id"] = deviceId;
-  data["gpio"] = deviceConfig->getSensorPin();
+  data["gpio"] = deviceConfig.getSensorPin();
   data["value"] = value;
 
   String message;
@@ -267,8 +266,8 @@ void Sync::sendSensorStatus(int value) {
 }
 
 void Sync::pulse() {
-  uint8_t pin = deviceConfig->getPulsePin();
-  bool inverted = deviceConfig->getPulseInverted();
+  uint8_t pin = deviceConfig.getPulsePin();
+  bool inverted = deviceConfig.getPulseInverted();
 
   DEBUG_PRINT("[Device] Executing pulse on pin: ");
   DEBUG_PRINTLN(pin);

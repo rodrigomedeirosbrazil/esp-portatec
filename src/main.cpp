@@ -16,9 +16,9 @@ DNSServer dnsServer;
 WiFiClient client;
 
 DeviceConfig deviceConfig;
-Sync sync(&deviceConfig);
-Webserver webserver(&deviceConfig, &sync);
-Sensor sensor(&deviceConfig, &sync);
+Sync sync;
+Webserver webserver;
+Sensor sensor;
 
 unsigned long lastCheck = 0;
 unsigned long lastSyncCheck = 0;
@@ -135,4 +135,3 @@ void reconnectWifi() {
   WiFi.begin(deviceConfig.getWifiSSID(), deviceConfig.getWifiNetworkPass());
   waitForWifiConnection();
 }
-

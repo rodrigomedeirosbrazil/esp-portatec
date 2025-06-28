@@ -7,8 +7,23 @@
 // This uses compile-time preprocessing instead of runtime checks for better performance
 // #define DEBUG
 
+#include "DeviceConfig/DeviceConfig.h"
+#include "Sensor/Sensor.h"
+#include "Sync/Sync.h"
+#include "Webserver/Webserver.h"
+
+class DeviceConfig;
+class Sensor;
+class Sync;
+class Webserver;
+
 extern IPAddress myIP;
 extern String API_KEY;
+
+extern DeviceConfig deviceConfig;
+extern Sensor sensor;
+extern Sync sync;
+extern Webserver webserver;
 
 // Debug helper macros
 #ifdef DEBUG

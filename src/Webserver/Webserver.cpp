@@ -6,16 +6,14 @@
 // Initialize static instance pointer
 Webserver* Webserver::instance = nullptr;
 
-Webserver::Webserver(DeviceConfig *deviceConfig, Sync *sync): server(80) {
-  this->deviceConfig = deviceConfig;
-  this->sync = sync;
+Webserver::Webserver(): server(80) {
   instance = this;  // Set the instance pointer
 
   server.on("/config", handleConfig);
   server.on("/saveconfig", HTTP_POST, handleSaveConfig);
   server.on("/info", handleInfo);
 
-  if (deviceConfig->isConfigured()) {
+  if (deviceConfig.isConfigured()) {
     server.on("/", handleRoot);
   } else {
     server.on("/", handleConfig);
@@ -47,18 +45,18 @@ void Webserver::handleConfig() {
   // Device Configuration Section
   html += "<div class='section'>";
   html += "<h2>Device Configuration</h2>";
-  html += "<input type='text' name='devicename' placeholder='Device Name' value='" + String(instance->deviceConfig->getDeviceName()) + "' required><br>";
-  html += "<input type='password' name='password' placeholder='WiFi Password' value='" + String(instance->deviceConfig->getPassword()) + "' required><br>";
-  html += "<input type='number' name='pulsepin' placeholder='Pulse Pin' value='" + String(instance->deviceConfig->getPulsePin()) + "' required><br>";
-  html += String("<input type='checkbox' name='pulseinverted' id='pulseinverted' value='true'") + (instance->deviceConfig->getPulseInverted() ? " checked" : "") + "><label for='pulseinverted'>Invert Pulse</label><br>";
-  html += "<input type='number' name='sensorpin' placeholder='Sensor Pin' value='" + (instance->deviceConfig->getSensorPin() == DeviceConfig::UNCONFIGURED_PIN ? "" : String(instance->deviceConfig->getSensorPin())) + "'><br>";
+  html += "<input type='text' name='devicename' placeholder='Device Name' value='" + String(deviceConfig.getDeviceName()) + "' required><br>";
+  html += "<input type='password' name='password' placeholder='WiFi Password' value='" + String(deviceConfig.getPassword()) + "' required><br>";
+  html += "<input type='number' name='pulsepin' placeholder='Pulse Pin' value='" + String(deviceConfig.getPulsePin()) + "' required><br>";
+  html += String("<input type='checkbox' name='pulseinverted' id='pulseinverted' value='true'") + (deviceConfig.getPulseInverted() ? " checked" : "") + "><label for='pulseinverted'>Invert Pulse</label><br>";
+  html += "<input type='number' name='sensorpin' placeholder='Sensor Pin' value='" + (deviceConfig.getSensorPin() == DeviceConfig::UNCONFIGURED_PIN ? "" : String(deviceConfig.getSensorPin())) + "'><br>";
   html += "</div>";
 
   // WiFi Network Configuration Section
   html += "<div class='section'>";
   html += "<h2>WiFi Network Configuration</h2>";
-  html += "<input type='text' name='wifissid' placeholder='WiFi Network Name (SSID)' value='" + String(instance->deviceConfig->getWifiSSID()) + "'><br>";
-  html += "<input type='password' name='wifipass' placeholder='WiFi Network Password' value='" + String(instance->deviceConfig->getWifiNetworkPass()) + "'><br>";
+  html += "<input type='text' name='wifissid' placeholder='WiFi Network Name (SSID)' value='" + String(deviceConfig.getWifiSSID()) + "'><br>";
+  html += "<input type='password' name='wifipass' placeholder='WiFi Network Password' value='" + String(deviceConfig.getWifiNetworkPass()) + "'><br>";
   html += "</div>";
 
   html += "<button type='submit'>Save Configuration</button>";
@@ -88,24 +86,24 @@ void Webserver::handleSaveConfig() {
       && password.length() > 0
       && pulsePinStr.length() > 0
     ) {
-      instance->deviceConfig->setDeviceName(deviceName.c_str());
-      instance->deviceConfig->setPassword(password.c_str());
-      instance->deviceConfig->setPulsePin(pulsePinStr.toInt());
-      instance->deviceConfig->setPulseInverted(pulseInvertedStr == "true");
-      
+      deviceConfig.setDeviceName(deviceName.c_str());
+      deviceConfig.setPassword(password.c_str());
+      deviceConfig.setPulsePin(pulsePinStr.toInt());
+      deviceConfig.setPulseInverted(pulseInvertedStr == "true");
+
       if (sensorPinStr.length() > 0) {
-        instance->deviceConfig->setSensorPin(sensorPinStr.toInt());
+        deviceConfig.setSensorPin(sensorPinStr.toInt());
       } else {
-        instance->deviceConfig->setSensorPin(DeviceConfig::UNCONFIGURED_PIN);
+        deviceConfig.setSensorPin(DeviceConfig::UNCONFIGURED_PIN);
       }
 
       // Set WiFi network configuration if provided
       if (wifiSSID.length() > 0) {
-        instance->deviceConfig->setWifiSSID(wifiSSID.c_str());
-        instance->deviceConfig->setWifiNetworkPass(wifiPass.c_str());
+        deviceConfig.setWifiSSID(wifiSSID.c_str());
+        deviceConfig.setWifiNetworkPass(wifiPass.c_str());
       }
 
-      instance->deviceConfig->saveConfig();
+      deviceConfig.saveConfig();
 
       // Restart ESP to apply new configuration
       instance->server.send(200, "text/html", "<script>setTimeout(function(){ window.location.href='/'; }, 3000);</script>Configuration saved! Restarting...");
@@ -122,8 +120,8 @@ void Webserver::handleNotFound() {
 }
 
 void Webserver::handlePulse() {
-  uint8_t pin = instance->deviceConfig->getPulsePin();
-  bool inverted = instance->deviceConfig->getPulseInverted();
+  uint8_t pin = deviceConfig.getPulsePin();
+  bool inverted = deviceConfig.getPulseInverted();
   digitalWrite(pin, inverted ? LOW : HIGH);
   delay(500);
   digitalWrite(pin, inverted ? HIGH : LOW);
@@ -148,11 +146,11 @@ void Webserver::handleRoot() {
   html += "</style></head>";
   html += "<body>";
   html += "<h1>ESP-PORTATEC Control</h1>";
-  html += "<p>Dispositivo: " + String(instance->deviceConfig->getDeviceName()) + "</p>";
+  html += "<p>Dispositivo: " + String(deviceConfig.getDeviceName()) + "</p>";
 
   // Sensor status display
-  if (instance->deviceConfig->getSensorPin() != DeviceConfig::UNCONFIGURED_PIN) {
-    bool sensorState = digitalRead(instance->deviceConfig->getSensorPin());
+  if (deviceConfig.getSensorPin() != DeviceConfig::UNCONFIGURED_PIN) {
+    bool sensorState = digitalRead(deviceConfig.getSensorPin());
     html += "<div class='status-display " + String(sensorState ? "status-closed" : "status-open") + "'>";
     html += "Status: " + String(sensorState ? "FECHADO" : "ABERTO");
     html += "</div>";
@@ -214,7 +212,7 @@ void Webserver::handleInfo() {
   html += "<h2>Informações do Dispositivo</h2>";
   html += "<div class='info-row'>";
   html += "<span class='info-label'>Nome do Dispositivo:</span>";
-  html += "<span class='info-value'>" + String(instance->deviceConfig->getDeviceName()) + "</span>";
+  html += "<span class='info-value'>" + String(deviceConfig.getDeviceName()) + "</span>";
   html += "</div>";
   html += "<div class='info-row'>";
   html += "<span class='info-label'>Chip ID:</span>";
@@ -235,12 +233,12 @@ void Webserver::handleInfo() {
   html += "</div>";
   html += "<div class='info-row'>";
   html += "<span class='info-label'>Pino Pulso:</span>";
-  html += "<span class='info-value'>GPIO " + String(instance->deviceConfig->getPulsePin()) + "</span>";
+  html += "<span class='info-value'>GPIO " + String(deviceConfig.getPulsePin()) + "</span>";
   html += "</div>";
   html += "<div class='info-row'>";
   html += "<span class='info-label'>Pino Sensor:</span>";
-  if (instance->deviceConfig->getSensorPin() != DeviceConfig::UNCONFIGURED_PIN) {
-    html += "<span class='info-value'>GPIO " + String(instance->deviceConfig->getSensorPin()) + " (" + (digitalRead(instance->deviceConfig->getSensorPin()) ? "ALTO" : "BAIXO") + ")</span>";
+  if (deviceConfig.getSensorPin() != DeviceConfig::UNCONFIGURED_PIN) {
+    html += "<span class='info-value'>GPIO " + String(deviceConfig.getSensorPin()) + " (" + (digitalRead(deviceConfig.getSensorPin()) ? "ALTO" : "BAIXO") + ")</span>";
   } else {
     html += "<span class='info-value'>N/A</span>";
   }
@@ -287,8 +285,7 @@ void Webserver::handleInfo() {
   } else {
     html += "<div class='info-row'>";
     html += "<span class='info-label'>Rede Configurada:</span>";
-    html += "<span class='info-value'>" + String(instance->deviceConfig->getWifiSSID()) + "</span>";
-    html += "</div>";
+    html += "<span class='info-value'>" + String(deviceConfig.getWifiSSID()) + "</span>";
   }
   html += "</div>";
 
@@ -297,7 +294,7 @@ void Webserver::handleInfo() {
   html += "<h2>Ponto de Acesso</h2>";
   html += "<div class='info-row'>";
   html += "<span class='info-label'>Nome do AP:</span>";
-  html += "<span class='info-value'>" + String(instance->deviceConfig->getDeviceName()) + "</span>";
+  html += "<span class='info-value'>" + String(deviceConfig.getDeviceName()) + "</span>";
   html += "</div>";
   html += "<div class='info-row'>";
   html += "<span class='info-label'>IP do AP:</span>";
@@ -314,7 +311,7 @@ void Webserver::handleInfo() {
   html += "<h2>Informações de Sincronização</h2>";
   html += "<div class='info-row'>";
   html += "<span class='info-label'>Status da Conexão:</span>";
-  if (instance->sync->isConnected()) {
+  if (sync.isConnected()) {
     html += "<span class='info-value status-connected'>Conectado</span>";
   } else {
     html += "<span class='info-value status-disconnected'>Desconectado</span>";
@@ -322,9 +319,9 @@ void Webserver::handleInfo() {
   html += "</div>";
   html += "<div class='info-row'>";
   html += "<span class='info-label'>Status da Sincronização:</span>";
-  if (instance->sync->isSyncing()) {
+  if (sync.isSyncing()) {
     html += "<span class='info-value status-syncing'>Sincronizando</span>";
-  } else if (instance->sync->isConnected()) {
+  } else if (sync.isConnected()) {
     html += "<span class='info-value status-disconnected'>Parado</span>";
   } else {
     html += "<span class='info-value status-disconnected'>Offline</span>";
@@ -332,7 +329,7 @@ void Webserver::handleInfo() {
   html += "</div>";
   html += "<div class='info-row'>";
   html += "<span class='info-label'>Última Sincronização:</span>";
-  unsigned long lastSync = instance->sync->getLastSuccessfulSync();
+  unsigned long lastSync = sync.getLastSuccessfulSync();
   if (lastSync > 0) {
     unsigned long timeSinceSync = (millis() - lastSync) / 1000;
     if (timeSinceSync < 60) {
@@ -360,4 +357,3 @@ void Webserver::handleInfo() {
 void Webserver::handleClient() {
   server.handleClient();
 }
-

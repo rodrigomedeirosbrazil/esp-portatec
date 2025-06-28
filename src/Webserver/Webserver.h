@@ -2,21 +2,15 @@
 #define WEB_SERVER_H
 
 #include <ESP8266WebServer.h>
-#include "DeviceConfig/DeviceConfig.h"
 #include "../globals.h"
-
-// Forward declaration
-class Sync;
 
 class Webserver {
     private:
         ESP8266WebServer server;
-        DeviceConfig *deviceConfig;
-        Sync *sync;
         static Webserver* instance;  // Static instance pointer
 
     public:
-        Webserver(DeviceConfig *deviceConfig, Sync *sync);
+        Webserver();
         void handleClient();
 
         // Static handler functions
