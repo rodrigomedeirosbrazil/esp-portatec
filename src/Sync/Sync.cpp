@@ -253,7 +253,7 @@ void Sync::sendSensorStatus(int value) {
 
   JsonObject data = doc.createNestedObject("data");
   data["chip-id"] = deviceId;
-  data["gpio"] = deviceConfig.getSensorPin();
+  data["pin"] = deviceConfig.getSensorPin();
   data["value"] = value;
 
   String message;
@@ -288,7 +288,7 @@ void Sync::sendCommandAck(String commandName, uint8_t gpio = 255) {
 
   JsonObject data = doc.createNestedObject("data");
   data["chip-id"] = deviceId;
-  data["gpio"] = gpio;
+  data["pin"] = gpio;
   data["command"] = commandName;
 
   String message;
