@@ -70,7 +70,7 @@ void Sync::connect() {
     webSocket.disconnect();
     delay(100); // Small delay to ensure disconnection
 
-    // webSocket.begin("192.168.15.104", 8888, "/app/" + API_KEY + "?protocol=7&client=js&version=7.0.0&flash=false");
+    // webSocket.begin("192.168.15.200", 8888, "/app/" + API_KEY + "?protocol=7&client=js&version=7.0.0&flash=false");
     webSocket.beginSSL(
       "portatec.medeirostec.com.br",
       443,
