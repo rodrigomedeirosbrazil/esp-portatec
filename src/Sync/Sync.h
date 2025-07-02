@@ -23,6 +23,8 @@ class Sync {
     void pulse();
     void sendCommandAck(String commandName, uint8_t gpio);
     void updateFirmware();
+    void sendDiagnosticInfo(String event);
+    uint32_t optimizeMemoryForOTA();
 
   public:
     Sync();

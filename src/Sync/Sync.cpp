@@ -304,19 +304,157 @@ void Sync::updateFirmware() {
   DEBUG_PRINTLN("[Firmware] Starting firmware update...");
   std::unique_ptr<BearSSL::WiFiClientSecure>client(new BearSSL::WiFiClientSecure);
   client->setInsecure();
+  client->setTimeout(30000);
+  client->setBufferSizes(1024, 1024);
+
+  uint32_t optimizedFreeHeap = optimizeMemoryForOTA();
+
+  if (optimizedFreeHeap < 25000) {
+    DEBUG_PRINTLN("[Firmware] ERROR: Not enough free heap for OTA update after optimization");
+    DEBUG_PRINT("[Firmware] Required: 25000 bytes, Available: ");
+    DEBUG_PRINTLN(optimizedFreeHeap);
+
+    sendDiagnosticInfo("firmware-update-memory-error");
+    sendCommandAck("update-firmware-error");
+    return;
+  }
 
   String url = "https://portatec.medeirostec.com.br/api/firmware/?chip-id=" + deviceId + "&version=" + DeviceConfig::FIRMWARE_VERSION;
   DEBUG_PRINT("[Firmware] Update URL: ");
   DEBUG_PRINTLN(url);
 
+  ESPhttpUpdate.setLedPin(-1);
+  ESPhttpUpdate.rebootOnUpdate(false);
+
+  ESPhttpUpdate.onStart([]() {
+    DEBUG_PRINTLN("[Firmware] OTA Update Started");
+    ESP.wdtFeed();
+  });
+
+  ESPhttpUpdate.onEnd([]() {
+    DEBUG_PRINTLN("[Firmware] OTA Update Finished");
+  });
+
+  ESPhttpUpdate.onProgress([](int cur, int total) {
+    if (cur % 8192 == 0) {
+      DEBUG_PRINT("[Firmware] Progress: ");
+      DEBUG_PRINT((cur * 100) / total);
+      DEBUG_PRINTLN("%");
+      ESP.wdtFeed();
+      yield();
+    }
+  });
+
+  ESPhttpUpdate.onError([](int error) {
+    DEBUG_PRINT("[Firmware] OTA Error: ");
+    DEBUG_PRINTLN(error);
+  });
+
+  uint32_t preDownloadHeap = ESP.getFreeHeap();
+  DEBUG_PRINT("[Firmware] Free heap before download: ");
+  DEBUG_PRINTLN(preDownloadHeap);
+
+  DEBUG_PRINTLN("[Firmware] Initiating HTTP update...");
   t_httpUpdate_return ret = ESPhttpUpdate.update(*client, url);
 
-  if (ret == HTTP_UPDATE_OK) {
-    sendCommandAck("update-firmware");
+  switch (ret) {
+    case HTTP_UPDATE_OK:
     DEBUG_PRINTLN("[Firmware] Update successful, restarting...");
-    ESP.restart();
-  } else {
-    DEBUG_PRINT("[Firmware] Update failed with error: ");
-    DEBUG_PRINTLN(ret);
+      sendCommandAck("update-firmware-success");
+      break;
+
+    case HTTP_UPDATE_FAILED:
+      DEBUG_PRINTLN("[Firmware] Update FAILED!");
+      DEBUG_PRINT("[Firmware] Error code: ");
+      DEBUG_PRINTLN(ESPhttpUpdate.getLastError());
+      DEBUG_PRINT("[Firmware] Error string: ");
+      DEBUG_PRINTLN(ESPhttpUpdate.getLastErrorString());
+      sendDiagnosticInfo("firmware-update-failed");
+      sendCommandAck("update-firmware-failed");
+      break;
+
+    case HTTP_UPDATE_NO_UPDATES:
+      DEBUG_PRINTLN("[Firmware] No updates available (current version is up to date)");
+      sendCommandAck("update-firmware-no-update");
+      break;
+
+    default:
+      DEBUG_PRINT("[Firmware] Unknown update result: ");
+      DEBUG_PRINTLN(ret);
+      DEBUG_PRINT("[Firmware] Error code: ");
+      DEBUG_PRINTLN(ESPhttpUpdate.getLastError());
+      DEBUG_PRINT("[Firmware] Error string: ");
+      DEBUG_PRINTLN(ESPhttpUpdate.getLastErrorString());
+      sendDiagnosticInfo("firmware-update-unknown-error");
+      sendCommandAck("update-firmware-unknown");
+      break;
   }
+
+  delay(1000);
+  ESP.restart();
+}
+
+uint32_t Sync::optimizeMemoryForOTA() {
+  DEBUG_PRINTLN("[Memory] Optimizing heap for OTA update...");
+
+  uint32_t initialHeap = ESP.getFreeHeap();
+  DEBUG_PRINT("[Memory] Initial heap: ");
+  DEBUG_PRINTLN(initialHeap);
+
+  // Desconectar WebSocket se conectado
+  if (connected) {
+    DEBUG_PRINTLN("[Memory] Disconnecting WebSocket to free buffers...");
+    webSocket.disconnect();
+    connected = false;
+    subscribed = false;
+    delay(100); // Aguardar desconexão completa
+  }
+
+  // Forçar limpeza de memória e garbage collection
+  ESP.wdtFeed();
+  yield();
+  delay(100);
+
+  uint32_t optimizedHeap = ESP.getFreeHeap();
+  DEBUG_PRINT("[Memory] Optimized heap: ");
+  DEBUG_PRINTLN(optimizedHeap);
+  DEBUG_PRINT("[Memory] Memory freed: ");
+  DEBUG_PRINTLN(optimizedHeap - initialHeap);
+
+  return optimizedHeap;
+}
+
+void Sync::sendDiagnosticInfo(String event) {
+  DEBUG_PRINT("[Pusher] Sending diagnostic info for event: ");
+  DEBUG_PRINTLN(event);
+
+  DynamicJsonDocument doc(1024);
+  doc["event"] = "client-diagnostic";
+  doc["channel"] = channelName;
+
+  JsonObject data = doc.createNestedObject("data");
+  data["chip-id"] = deviceId;
+  data["event"] = event;
+  data["millis"] = millis();
+  data["firmware-version"] = DeviceConfig::FIRMWARE_VERSION;
+  data["free-heap"] = ESP.getFreeHeap();
+  data["wifi-strength"] = constrain(map(WiFi.RSSI(), -100, -30, 0, 100), 0, 100);
+  data["wifi-connected"] = (WiFi.status() == WL_CONNECTED);
+  data["wifi-ssid"] = WiFi.SSID();
+  data["ip-address"] = WiFi.localIP().toString();
+  data["mac-address"] = WiFi.macAddress();
+  data["uptime"] = millis();
+  data["reset-reason"] = ESP.getResetReason();
+  data["flash-chip-size"] = ESP.getFlashChipSize();
+  data["flash-chip-speed"] = ESP.getFlashChipSpeed();
+  data["sketch-size"] = ESP.getSketchSize();
+  data["free-sketch-space"] = ESP.getFreeSketchSpace();
+
+  String message;
+  serializeJson(doc, message);
+
+  DEBUG_PRINT("[Pusher] Sending diagnostic message: ");
+  DEBUG_PRINTLN(message);
+
+  webSocket.sendTXT(message);
 }
