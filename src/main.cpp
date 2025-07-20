@@ -67,7 +67,11 @@ void loop() {
 
   sync.handle();
 
-  sensor.handle();
+  if (sensor.hasChanged()) {
+    if (sync.isConnected()) {
+      sync.sendSensorStatus(sensor.getValue());
+    }
+  }
 }
 
 void setupAPMode() {

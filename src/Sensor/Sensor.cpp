@@ -16,10 +16,10 @@ void Sensor::init() {
     DEBUG_PRINTLN(lastSensorValue);
 }
 
-void Sensor::handle() {
-    if (deviceConfig.getSensorPin() == DeviceConfig::UNCONFIGURED_PIN) return;
+bool Sensor::hasChanged() {
+    if (deviceConfig.getSensorPin() == DeviceConfig::UNCONFIGURED_PIN) return false;
     if (millis() - lastSensorCheck < SENSOR_CHECK_INTERVAL) {
-        return;
+        return false;
     }
 
     lastSensorCheck = millis();
@@ -32,28 +32,13 @@ void Sensor::handle() {
         DEBUG_PRINT(", Current: ");
         DEBUG_PRINTLN(currentSensorValue);
 
-        onSensorChange(currentSensorValue, lastSensorValue);
-
         lastSensorValue = currentSensorValue;
+        return true;
     }
+
+    return false;
 }
 
-void Sensor::onSensorChange(int currentValue, int previousValue) {
-    DEBUG_PRINTLN("=== SENSOR EVENT TRIGGERED ===");
-    DEBUG_PRINT("Sensor changed from ");
-    DEBUG_PRINT(previousValue);
-    DEBUG_PRINT(" to ");
-    DEBUG_PRINTLN(currentValue);
-
-    if (sync.isConnected()) {
-        sync.sendSensorStatus(currentValue);
-    }
-
-    if (currentValue == HIGH && previousValue == LOW) {
-        DEBUG_PRINTLN("Sensor activated (LOW -> HIGH)");
-    } else if (currentValue == LOW && previousValue == HIGH) {
-        DEBUG_PRINTLN("Sensor deactivated (HIGH -> LOW)");
-    }
-
-    DEBUG_PRINTLN("=== END SENSOR EVENT ===");
+int Sensor::getValue() {
+    return this->lastSensorValue;
 }

@@ -10,12 +10,11 @@ private:
     unsigned long lastSensorCheck;
     static const unsigned long SENSOR_CHECK_INTERVAL = 100;
 
-    void onSensorChange(int currentValue, int previousValue);
-
 public:
     Sensor();
     void init();
-    void handle();
+    bool hasChanged();
+    int getValue();
 };
 
 #endif
