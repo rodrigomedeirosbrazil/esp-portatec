@@ -353,6 +353,7 @@ void Sync::updateFirmware() {
   uint32_t preDownloadHeap = ESP.getFreeHeap();
   DEBUG_PRINT("[Firmware] Free heap before download: ");
   DEBUG_PRINTLN(preDownloadHeap);
+  (void)preDownloadHeap; // Suppress unused variable warning when DEBUG is disabled
 
   DEBUG_PRINTLN("[Firmware] Initiating HTTP update...");
   t_httpUpdate_return ret = ESPhttpUpdate.update(*client, url);
@@ -400,6 +401,7 @@ uint32_t Sync::optimizeMemoryForOTA() {
   uint32_t initialHeap = ESP.getFreeHeap();
   DEBUG_PRINT("[Memory] Initial heap: ");
   DEBUG_PRINTLN(initialHeap);
+  (void)initialHeap; // Suppress unused variable warning when DEBUG is disabled
 
   // Desconectar WebSocket se conectado
   if (connected) {
