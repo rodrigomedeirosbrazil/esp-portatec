@@ -24,6 +24,7 @@ unsigned long lastCheck = 0;
 unsigned long lastSyncCheck = 0;
 unsigned long apModeStartTime = 0;
 unsigned int syncTimeoutCount = 0;
+unsigned long lastSensorStatusSent = 0; // Controle para evitar envios muito frequentes
 
 void setup() {
   delay(1000);
@@ -69,7 +70,13 @@ void loop() {
 
   if (sensor.hasChanged()) {
     if (sync.isConnected()) {
-      sync.sendSensorStatus(sensor.getValue());
+      if (millis() - lastSensorStatusSent >= 2000) {
+        sync.sendSensorStatus(sensor.getValue());
+        lastSensorStatusSent = millis();
+        DEBUG_PRINTLN("[Main] Sensor status sent to server");
+      } else {
+        DEBUG_PRINTLN("[Main] Skipping sensor status send - too frequent");
+      }
     }
   }
 }

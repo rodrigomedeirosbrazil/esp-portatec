@@ -8,7 +8,11 @@ class Sensor {
 private:
     int lastSensorValue;
     unsigned long lastSensorCheck;
-    static const unsigned long SENSOR_CHECK_INTERVAL = 100;
+    unsigned long lastStableValue;
+    int stableValue;
+    static const unsigned long SENSOR_CHECK_INTERVAL = 1000;
+    static const unsigned long DEBOUNCE_DELAY = 500;
+    static const int DEBOUNCE_COUNT = 3;
 
 public:
     Sensor();
