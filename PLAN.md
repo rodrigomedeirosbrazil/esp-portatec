@@ -18,7 +18,7 @@ Este documento detalha o plano para adicionar a funcionalidade de acesso por PIN
 3.  **Lógica Avançada com JavaScript:** Implementaremos um script para gerenciar a interação entre os campos:
     *   **Auto-Avanço:** Ao digitar um número, o foco pulará para o campo seguinte.
     *   **Auto-Retrocesso (Backspace):** Ao pressionar `Backspace` em um campo vazio, o foco e a ação de apagar retornarão ao campo anterior.
-4.  **Submissão para o Servidor:** Um botão "Confirmar" enviará o PIN concatenado via `POST` para o endpoint `/action`.
+4.  **Submissão para o Servidor:** Um botão "Confirmar" enviará o PIN concatenado via `POST` para o endpoint `/open`.
 5.  **Local do Código:** Todo o código de frontend (HTML, CSS, JS) será embarcado como strings no arquivo `src/Webserver/Webserver.cpp`.
 
 ---
@@ -38,11 +38,15 @@ Este documento detalha o plano para adicionar a funcionalidade de acesso por PIN
 
 1.  **Nova Classe `PinManager`:** Criaremos a classe `src/PinManager/PinManager.h` e `src/PinManager/PinManager.cpp`.
 2.  **Integração com o `Clock`:** O `PinManager` dependerá da classe `Clock` para todas as operações de tempo.
-3.  **Responsabilidades do `PinManager`:**
-    *   **Armazenamento:** Manter uma lista de PINs. Cada PIN terá seu código e um `timestamp` de expiração em época Unix.
+3.  **Responsabilidades e Persistência do `PinManager`:**
+    *   **Armazenamento em Memória:** Manter uma lista (`std::vector`) de PINs em RAM para acesso rápido durante a operação normal.
+    *   **Armazenamento Persistente (Flash):** Utilizar o sistema de arquivos **LittleFS** (ou equivalente) para salvar a lista de PINs. Isso garante que os PINs não sejam perdidos se o dispositivo for reiniciado.
     *   **Cálculo da Expiração:** Ao adicionar um PIN, seu tempo de expiração será calculado como `Clock::getInstance().now() + durationInSeconds`.
-    *   **Validação:** O método `isPinValid(String pin)` verificará se o PIN existe e se `Clock::getInstance().now()` é menor que o `timestamp` de expiração do PIN.
+    *   **Validação:** O método `isPinValid(String pin)` verificará se o PIN existe na lista da memória e se `Clock::getInstance().now()` é menor que o `timestamp` de expiração do PIN.
     *   **Limpeza:** O método `purgeExpiredPins()` removerá os PINs expirados, comparando com o tempo atual fornecido pelo `Clock`.
+4.  **Fluxo de Carga e Salvamento:**
+    *   **Carga (Inicialização):** Ao iniciar, o `PinManager` lerá um arquivo (ex: `/pins.json`) do LittleFS para carregar a lista de PINs previamente salvos na memória RAM.
+    *   **Salvamento (Atualização):** Após a classe `Sync` atualizar os PINs a partir do servidor, o `PinManager` irá serializar a lista de PINs da memória para o formato JSON e reescrever o arquivo no LittleFS.
 
 ---
 
@@ -53,7 +57,7 @@ Este documento detalha o plano para adicionar a funcionalidade de acesso por PIN
     *   A requisição HTTP `GET` para o servidor agora esperará uma resposta JSON contendo não apenas a lista de PINs, mas também o **`timestamp` atual do servidor (época Unix)**.
     *   Após uma sincronização bem-sucedida, a classe `Sync` irá:
         1.  Atualizar o relógio do dispositivo chamando `Clock::getInstance().setTime(serverEpoch)`.
-        2.  Adicionar os novos PINs ao `PinManager`.
+        2.  Adicionar os novos PINs ao `PinManager`, que por sua vez os salvará no LittleFS.
 
 ---
 
@@ -77,10 +81,10 @@ Este documento detalha o plano para adicionar a funcionalidade de acesso por PIN
     *   `src/PinManager/PinManager.h`
     *   `src/PinManager/PinManager.cpp`
 *   **Arquivos a Modificar:**
-    *   `src/main.cpp` (configuração do modo AP, chamadas no loop)
+    *   `src/main.cpp` (inicialização do LittleFS, configuração do modo AP, chamadas no loop)
     *   `src/Webserver/Webserver.h` e `src/Webserver/Webserver.cpp` (integração com `PinManager`, lógica de segurança)
     *   `src/Sync/Sync.h` e `src/Sync/Sync.cpp` (integração com `Clock` e `PinManager`)
-    *   `platformio.ini` (para adicionar a dependência `ArduinoJson`, se necessário)
+    *   `platformio.ini` (para adicionar as dependências `ArduinoJson` e `LittleFS`, se necessário)
 
 ---
 
