@@ -2,6 +2,11 @@
 
 #include "Webserver.h"
 #include "../Sync/Sync.h"
+#include "../PinManager/PinManager.h"
+#include <ArduinoJson.h>
+
+// Forward declaration of the global pinManager instance
+extern PinManager pinManager;
 
 // Initialize static instance pointer
 Webserver* Webserver::instance = nullptr;
@@ -12,6 +17,7 @@ Webserver::Webserver(): server(80) {
   server.on("/config", handleConfig);
   server.on("/saveconfig", HTTP_POST, handleSaveConfig);
   server.on("/info", handleInfo);
+  server.on("/open", HTTP_POST, handleOpen);
 
   server.on("/", handleRoot);
   server.onNotFound(handleNotFound);
@@ -145,7 +151,7 @@ void Webserver::handleRoot() {
   html += "window.onclick = function(event) { if (event.target == modal) { modal.style.display = 'none'; } }";
   html += "pinInputs.forEach((input, index) => { input.addEventListener('input', () => { if (input.value.length === 1 && index < pinInputs.length - 1) { pinInputs[index + 1].focus(); } });";
   html += "input.addEventListener('keydown', (e) => { if (e.key === 'Backspace' && input.value.length === 0 && index > 0) { pinInputs[index - 1].focus(); } }); });";
-  html += "document.getElementById('confirmPin').addEventListener('click', () => { let pin = ''; pinInputs.forEach(input => { pin += input.value; }); if (pin.length === 6) { alert('PIN: ' + pin); } else { alert('PIN incompleto'); } });";
+  html += "document.getElementById('confirmPin').addEventListener('click', () => { let pin = ''; pinInputs.forEach(input => { pin += input.value; }); if (pin.length === 6) { fetch('/open', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ pin: pin }) }).then(response => response.text()).then(data => { alert(data); if (data === 'Success') { modal.style.display = 'none'; } }); } else { alert('PIN incompleto'); } });";
   html += "</script></body></html>";
   instance->server.send(200, "text/html", html);
 }
@@ -281,6 +287,44 @@ void Webserver::handleInfo() {
   html += "</body></html>";
 
   instance->server.send(200, "text/html", html);
+}
+
+uint8_t failedPinAttempts = 0;
+
+void Webserver::handleOpen() {
+    if (!instance->server.hasArg("plain")) {
+        instance->server.send(400, "text/plain", "Bad Request");
+        return;
+    }
+
+    String requestBody = instance->server.arg("plain");
+    DynamicJsonDocument doc(256);
+    deserializeJson(doc, requestBody);
+    String pin = doc["pin"];
+
+    if (pinManager.isPinValid(pin)) {
+        failedPinAttempts = 0; // Reset counter on success
+
+        // Execute the pulse action
+        uint8_t pulsePin = deviceConfig.getPulsePin();
+        bool inverted = deviceConfig.getPulseInverted();
+        digitalWrite(pulsePin, inverted ? LOW : HIGH);
+        delay(500);
+        digitalWrite(pulsePin, inverted ? HIGH : LOW);
+
+        instance->server.send(200, "text/plain", "Success");
+    } else {
+        failedPinAttempts++;
+        delay(4000); // 4-second delay on failure
+
+        if (failedPinAttempts >= 3) {
+            instance->server.send(403, "text/plain", "Too many failed attempts. Restarting...");
+            delay(1000);
+            ESP.restart();
+        } else {
+            instance->server.send(401, "text/plain", "Invalid PIN");
+        }
+    }
 }
 
 void Webserver::handleClient() {

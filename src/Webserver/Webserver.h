@@ -20,6 +20,7 @@ class Webserver {
 
         static void handleRoot();
         static void handleInfo();
+        static void handleOpen();
 };
 
 #endif
