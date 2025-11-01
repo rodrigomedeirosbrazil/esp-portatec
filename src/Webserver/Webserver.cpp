@@ -13,13 +13,7 @@ Webserver::Webserver(): server(80) {
   server.on("/saveconfig", HTTP_POST, handleSaveConfig);
   server.on("/info", handleInfo);
 
-  if (deviceConfig.isConfigured()) {
-    server.on("/", handleRoot);
-  } else {
-    server.on("/", handleConfig);
-  }
-
-  server.on("/pulse", handlePulse);
+  server.on("/", handleRoot);
   server.onNotFound(handleNotFound);
   server.begin();
 }
@@ -119,64 +113,39 @@ void Webserver::handleNotFound() {
   instance->server.send(302, "text/plain", "");
 }
 
-void Webserver::handlePulse() {
-  uint8_t pin = deviceConfig.getPulsePin();
-  bool inverted = deviceConfig.getPulseInverted();
-  digitalWrite(pin, inverted ? LOW : HIGH);
-  delay(500);
-  digitalWrite(pin, inverted ? HIGH : LOW);
-  instance->server.send(200, "text/plain", "GPIO " + String(pin) + " toggled");
-}
 
 void Webserver::handleRoot() {
   String html = "<!DOCTYPE html><html><head>";
   html += "<meta name='viewport' content='width=device-width, initial-scale=1'><meta charset=\"UTF-8\">";
-  html += "<meta http-equiv='refresh' content='10'>";  // Auto refresh every 10 seconds
   html += "<title>ESP-PORTATEC Control</title>";
   html += "<style>";
-  html += "body { font-family: Arial, sans-serif; margin: 20px; text-align: center; }";
-  html += "button { padding: 10px 20px; font-size: 16px; background-color: #4CAF50; color: white; border: none; border-radius: 4px; cursor: pointer; margin: 5px; }";
-  html += "button:hover { background-color: #45a049; }";
-  html += "button:disabled { background-color: #cccccc; cursor: not-allowed; }";
-  html += ".working { background-color: #ff9800 !important; }";
-  html += ".button-container { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; margin: 20px 0; }";
-  html += ".status-display { font-size: 18px; margin: 20px auto; padding: 15px; border-radius: 8px; max-width: 300px; width: 100%; }";
-  html += ".status-closed { background-color: #f44336; color: white; }";
-  html += ".status-open { background-color: #4CAF50; color: white; }";
-  html += "</style></head>";
-  html += "<body>";
-  html += "<h1>ESP-PORTATEC Control</h1>";
-  html += "<p>Dispositivo: " + String(deviceConfig.getDeviceName()) + "</p>";
-
-  // Sensor status display
-  if (deviceConfig.getSensorPin() != DeviceConfig::UNCONFIGURED_PIN) {
-    bool sensorState = digitalRead(deviceConfig.getSensorPin());
-    html += "<div class='status-display " + String(sensorState ? "status-closed" : "status-open") + "'>";
-    html += "Status: " + String(sensorState ? "FECHADO" : "ABERTO");
-    html += "</div>";
-  }
-
-  html += "<div class='button-container'>";
-  html += "<button id='pulseButton' onclick='pulseGpio()'>Abrir</button>";
-  html += "<button onclick=\"window.location.href='/info'\">Informações</button>";
-  html += "</div>";
+  html += "body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; background-color: #f0f2f5; }";
+  html += "#openButton { padding: 20px 40px; font-size: 24px; background-color: #007aff; color: white; border: none; border-radius: 10px; cursor: pointer; transition: background-color 0.3s; }";
+  html += "#openButton:hover { background-color: #005ecb; }";
+  html += ".modal { display: none; position: fixed; z-index: 1; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.6); }";
+  html += ".modal-content { background-color: #fff; margin: 15% auto; padding: 20px; border: 1px solid #888; width: 90%; max-width: 320px; border-radius: 10px; text-align: center; box-shadow: 0 5px 15px rgba(0,0,0,0.3); }";
+  html += "#pin-container { display: flex; justify-content: center; gap: 10px; margin: 20px 0; }";
+  html += ".pin-digit { width: 40px; height: 50px; font-size: 24px; text-align: center; border: 1px solid #ccc; border-radius: 5px; }";
+  html += "#confirmPin { padding: 10px 20px; font-size: 16px; background-color: #4CAF50; color: white; border: none; border-radius: 4px; cursor: pointer; margin-top: 10px; }";
+  html += "#closeModal { position: absolute; top: 10px; right: 15px; font-size: 24px; font-weight: bold; cursor: pointer; }";
+  html += "</style></head><body>";
+  html += "<button id='openButton'>Abrir</button>";
+  html += "<div id='pinModal' class='modal'><div class='modal-content'>";
+  html += "<span id='closeModal'>&times;</span><h2>Digite o PIN</h2>";
+  html += "<div id='pin-container'>";
+  for (int i = 0; i < 6; i++) { html += "<input type='tel' class='pin-digit' maxlength='1'>"; }
+  html += "</div><button id='confirmPin'>Confirmar</button></div></div>";
   html += "<script>";
-  html += "function pulseGpio() {";
-  html += "  const button = document.getElementById('pulseButton');";
-  html += "  button.disabled = true;";
-  html += "  button.classList.add('working');";
-  html += "  button.textContent = 'Abrindo...';";
-  html += "  fetch('/pulse')";
-  html += "    .then(response => response.text())";
-  html += "    .then(data => {";
-  html += "      console.log(data);";
-  html += "      setTimeout(() => {";
-  html += "        button.disabled = false;";
-  html += "        button.classList.remove('working');";
-  html += "        button.textContent = 'Abrir';";
-  html += "      }, 500);";
-  html += "    });";
-  html += "}";
+  html += "const modal = document.getElementById('pinModal');";
+  html += "const btn = document.getElementById('openButton');";
+  html += "const span = document.getElementById('closeModal');";
+  html += "const pinInputs = document.querySelectorAll('.pin-digit');";
+  html += "btn.onclick = function() { modal.style.display = 'block'; pinInputs[0].focus(); }";
+  html += "span.onclick = function() { modal.style.display = 'none'; }";
+  html += "window.onclick = function(event) { if (event.target == modal) { modal.style.display = 'none'; } }";
+  html += "pinInputs.forEach((input, index) => { input.addEventListener('input', () => { if (input.value.length === 1 && index < pinInputs.length - 1) { pinInputs[index + 1].focus(); } });";
+  html += "input.addEventListener('keydown', (e) => { if (e.key === 'Backspace' && input.value.length === 0 && index > 0) { pinInputs[index - 1].focus(); } }); });";
+  html += "document.getElementById('confirmPin').addEventListener('click', () => { let pin = ''; pinInputs.forEach(input => { pin += input.value; }); if (pin.length === 6) { alert('PIN: ' + pin); } else { alert('PIN incompleto'); } });";
   html += "</script></body></html>";
   instance->server.send(200, "text/html", html);
 }

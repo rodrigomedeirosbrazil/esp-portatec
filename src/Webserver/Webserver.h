@@ -17,7 +17,7 @@ class Webserver {
         static void handleConfig();
         static void handleSaveConfig();
         static void handleNotFound();
-        static void handlePulse();
+
         static void handleRoot();
         static void handleInfo();
 };
