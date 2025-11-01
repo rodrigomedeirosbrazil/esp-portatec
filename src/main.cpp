@@ -26,6 +26,8 @@ unsigned long apModeStartTime = 0;
 unsigned int syncTimeoutCount = 0;
 unsigned long lastSensorStatusSent = 0; // Controle para evitar envios muito frequentes
 
+const char* AP_SSID = "Portatec-Setup";
+
 void setup() {
   delay(1000);
 
@@ -44,27 +46,13 @@ void setup() {
 
   DEBUG_PRINTLN("Pulse and sensor pins configured");
 
-  WiFi.mode(WIFI_AP_STA);
+  WiFi.mode(WIFI_AP);
   setupAPMode();
-
-  // Try to connect to WiFi if configured
-  if (! deviceConfig.isConfigured()) {
-    DEBUG_PRINTLN("Device not configured or no WiFi credentials");
-    return;
-  }
-
-  DEBUG_PRINT("Device configured. Connecting to WiFi: ");
-  DEBUG_PRINTLN(deviceConfig.getWifiSSID());
-
-  WiFi.begin(deviceConfig.getWifiSSID(), deviceConfig.getWifiNetworkPass());
-  waitForWifiConnection();
 }
 
 void loop() {
   webserver.handleClient();
   dnsServer.processNextRequest();
-
-  handleConnection();
 
   sync.handle();
 
@@ -83,66 +71,11 @@ void loop() {
 
 void setupAPMode() {
   DEBUG_PRINTLN("Setting up AP mode...");
-  WiFi.softAP(deviceConfig.getDeviceName(), deviceConfig.getPassword());
+  WiFi.softAP(AP_SSID, NULL);
   myIP = WiFi.softAPIP();
   DEBUG_PRINT("AP mode started. SSID: ");
-  DEBUG_PRINT(deviceConfig.getDeviceName());
+  DEBUG_PRINT(AP_SSID);
   DEBUG_PRINT(", IP: ");
   DEBUG_PRINTLN(myIP);
   dnsServer.start(53, "*", myIP);
-}
-
-void handleConnection() {
-  if (! deviceConfig.isConfigured()) {
-    return;
-  }
-
-  if (millis() - lastCheck < 30000) {
-    return;
-  }
-
-  lastCheck = millis();
-  DEBUG_PRINTLN("Checking connection status...");
-
-  if (sync.isSyncing()) {
-    return;
-  }
-
-  // Check WiFi connection
-  if (WiFi.status() != WL_CONNECTED) {
-    DEBUG_PRINTLN("WiFi disconnected. Attempting to reconnect...");
-    reconnectWifi();
-    if (WiFi.status() == WL_CONNECTED) {
-      DEBUG_PRINTLN("WiFi reconnected successfully");
-      return;
-    }
-
-    DEBUG_PRINTLN("WiFi cannot reconnect.");
-    return;
-  }
-}
-
-void waitForWifiConnection() {
-    DEBUG_PRINT("Waiting for WiFi connection");
-    int timeout = 0;
-    while (WiFi.status() != WL_CONNECTED && timeout < 20) {
-      delay(1000);
-      timeout++;
-      DEBUG_PRINT(".");
-  }
-  if (WiFi.status() == WL_CONNECTED) {
-    DEBUG_PRINT("WiFi connected successfully. IP: ");
-    DEBUG_PRINTLN(WiFi.localIP());
-    return;
-  }
-
-  DEBUG_PRINTLN(" Timeout!");
-  return;
-}
-
-void reconnectWifi() {
-  DEBUG_PRINTLN("Reconnecting to WiFi...");
-  WiFi.disconnect();
-  WiFi.begin(deviceConfig.getWifiSSID(), deviceConfig.getWifiNetworkPass());
-  waitForWifiConnection();
 }
