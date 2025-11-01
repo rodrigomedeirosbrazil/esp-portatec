@@ -38,26 +38,31 @@ Este documento detalha o plano para adicionar a funcionalidade de acesso por PIN
 
 1.  **Nova Classe `PinManager`:** Criaremos a classe `src/PinManager/PinManager.h` e `src/PinManager/PinManager.cpp`.
 2.  **Integração com o `Clock`:** O `PinManager` dependerá da classe `Clock` para todas as operações de tempo.
-3.  **Responsabilidades e Persistência do `PinManager`:**
-    *   **Armazenamento em Memória:** Manter uma lista (`std::vector`) de PINs em RAM para acesso rápido durante a operação normal.
-    *   **Armazenamento Persistente (Flash):** Utilizar o sistema de arquivos **LittleFS** (ou equivalente) para salvar a lista de PINs. Isso garante que os PINs não sejam perdidos se o dispositivo for reiniciado.
-    *   **Cálculo da Expiração:** Ao adicionar um PIN, seu tempo de expiração será calculado como `Clock::getInstance().now() + durationInSeconds`.
-    *   **Validação:** O método `isPinValid(String pin)` verificará se o PIN existe na lista da memória e se `Clock::getInstance().now()` é menor que o `timestamp` de expiração do PIN.
-    *   **Limpeza:** O método `purgeExpiredPins()` removerá os PINs expirados, comparando com o tempo atual fornecido pelo `Clock`.
-4.  **Fluxo de Carga e Salvamento:**
-    *   **Carga (Inicialização):** Ao iniciar, o `PinManager` lerá um arquivo (ex: `/pins.json`) do LittleFS para carregar a lista de PINs previamente salvos na memória RAM.
-    *   **Salvamento (Atualização):** Após a classe `Sync` atualizar os PINs a partir do servidor, o `PinManager` irá serializar a lista de PINs da memória para o formato JSON e reescrever o arquivo no LittleFS.
+3.  **Estrutura e Persistência do PIN:**
+    *   **Estrutura do PIN:** Cada PIN será um objeto contendo: o código do PIN, um `timestamp` de **início** de validade e um `timestamp` de **fim** de validade (ambos em época Unix).
+    *   **Armazenamento em Memória:** Manter uma lista (`std::vector`) de PINs em RAM para acesso rápido.
+    *   **Armazenamento Persistente (Flash):** Utilizar o sistema de arquivos **LittleFS** para salvar a lista de PINs, garantindo que os dados persistam após reinicializações.
+4.  **Responsabilidades do `PinManager`:**
+    *   **Validação:** O método `isPinValid(String pin)` verificará se o PIN existe e se a data/hora atual (`Clock::getInstance().now()`) está **entre** o `timestamp` de início e o `timestamp` de fim.
+    *   **Limpeza:** O método `purgeExpiredPins()` removerá os PINs cujo `timestamp` de fim já passou.
+    *   **Exportação:** Fornecer um método para serializar a lista de PINs ativos em formato JSON, para ser enviada ao servidor.
+    *   **Carga/Salvamento:** Ler o arquivo de PINs do LittleFS na inicialização e salvá-lo sempre que a lista for alterada pela sincronização.
 
 ---
 
-## Fase 5: Sincronização com o Servidor Externo
+## Fase 5: Sincronização Bidirecional com o Servidor
 
-1.  **Adaptar a Classe `Sync`:** A classe `Sync` (`src/Sync/Sync.cpp`) será modificada.
-2.  **Lógica de Sincronização:**
-    *   A requisição HTTP `GET` para o servidor agora esperará uma resposta JSON contendo não apenas a lista de PINs, mas também o **`timestamp` atual do servidor (época Unix)**.
-    *   Após uma sincronização bem-sucedida, a classe `Sync` irá:
-        1.  Atualizar o relógio do dispositivo chamando `Clock::getInstance().setTime(serverEpoch)`.
-        2.  Adicionar os novos PINs ao `PinManager`, que por sua vez os salvará no LittleFS.
+1.  **Adaptar a Classe `Sync`:** A classe `Sync` será o orquestrador da comunicação com o servidor.
+2.  **Lógica de Sincronização:** O processo ocorrerá em passos:
+    1.  **Envio do Estado Atual:** Periodicamente, a classe `Sync` obterá a lista de PINs ativos do `PinManager` e a enviará ao servidor em uma requisição **HTTP POST**, junto com o ID do dispositivo.
+    2.  **Análise no Servidor:** O servidor comparará a lista recebida com sua lista mestra de PINs para aquele dispositivo.
+    3.  **Resposta do Servidor:**
+        *   **Se tudo estiver correto:** O servidor responderá com **HTTP 204 No Content**. O dispositivo não fará nada.
+        *   **Se houver divergências:** O servidor responderá com **HTTP 200 OK** e o corpo da resposta conterá a **lista completa e corrigida** de PINs válidos (com data de início e fim), além do `timestamp` atual do servidor.
+    4.  **Atualização no Dispositivo:** Ao receber uma resposta `200 OK`, o `Sync` irá:
+        1.  Atualizar o relógio do dispositivo: `Clock::getInstance().setTime(serverEpoch)`.
+        2.  Limpar a lista de PINs antiga no `PinManager`.
+        3.  Adicionar a nova lista de PINs ao `PinManager`, que por sua vez a salvará no LittleFS.
 
 ---
 
@@ -83,7 +88,7 @@ Este documento detalha o plano para adicionar a funcionalidade de acesso por PIN
 *   **Arquivos a Modificar:**
     *   `src/main.cpp` (inicialização do LittleFS, configuração do modo AP, chamadas no loop)
     *   `src/Webserver/Webserver.h` e `src/Webserver/Webserver.cpp` (integração com `PinManager`, lógica de segurança)
-    *   `src/Sync/Sync.h` e `src/Sync/Sync.cpp` (integração com `Clock` e `PinManager`)
+    *   `src/Sync/Sync.h` e `src/Sync/Sync.cpp` (implementação da lógica de sincronização bidirecional)
     *   `platformio.ini` (para adicionar as dependências `ArduinoJson` e `LittleFS`, se necessário)
 
 ---
