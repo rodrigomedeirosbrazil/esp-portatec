@@ -275,46 +275,6 @@ void Webserver::handleInfo() {
   html += "</div>";
   html += "</div>";
 
-  // Sync Information
-  html += "<div class='section'>";
-  html += "<h2>Informações de Sincronização</h2>";
-  html += "<div class='info-row'>";
-  html += "<span class='info-label'>Status da Conexão:</span>";
-  if (sync.isConnected()) {
-    html += "<span class='info-value status-connected'>Conectado</span>";
-  } else {
-    html += "<span class='info-value status-disconnected'>Desconectado</span>";
-  }
-  html += "</div>";
-  html += "<div class='info-row'>";
-  html += "<span class='info-label'>Status da Sincronização:</span>";
-  if (sync.isSyncing()) {
-    html += "<span class='info-value status-syncing'>Sincronizando</span>";
-  } else if (sync.isConnected()) {
-    html += "<span class='info-value status-disconnected'>Parado</span>";
-  } else {
-    html += "<span class='info-value status-disconnected'>Offline</span>";
-  }
-  html += "</div>";
-  html += "<div class='info-row'>";
-  html += "<span class='info-label'>Última Sincronização:</span>";
-  unsigned long lastSync = sync.getLastSuccessfulSync();
-  if (lastSync > 0) {
-    unsigned long timeSinceSync = (millis() - lastSync) / 1000;
-    if (timeSinceSync < 60) {
-      html += "<span class='info-value'>" + String(timeSinceSync) + " segundos atrás</span>";
-    } else if (timeSinceSync < 3600) {
-      html += "<span class='info-value'>" + String(timeSinceSync / 60) + " minutos atrás</span>";
-    } else if (timeSinceSync < 86400) {
-      html += "<span class='info-value'>" + String(timeSinceSync / 3600) + " horas atrás</span>";
-    } else {
-      html += "<span class='info-value'>" + String(timeSinceSync / 86400) + " dias atrás</span>";
-    }
-  } else {
-    html += "<span class='info-value status-disconnected'>Nunca sincronizado</span>";
-  }
-  html += "</div>";
-  html += "</div>";
 
   html += "<a href='/' class='back-button'>← Voltar</a>";
   html += "</div>";
