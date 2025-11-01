@@ -12,6 +12,9 @@
 
 #include "main.h"
 
+#include "PinManager/PinManager.h"
+#include <LittleFS.h>
+
 DNSServer dnsServer;
 WiFiClient client;
 
@@ -19,6 +22,7 @@ DeviceConfig deviceConfig;
 Sync sync;
 Webserver webserver;
 Sensor sensor;
+PinManager pinManager;
 
 unsigned long lastCheck = 0;
 unsigned long lastSyncCheck = 0;
@@ -38,6 +42,13 @@ void setup() {
   DEBUG_PRINTLN("=== ESP PORTATEC DEBUG MODE ===");
   DEBUG_PRINTLN("Device starting up...");
 #endif
+
+  if (!LittleFS.begin()) {
+    DEBUG_PRINTLN("An Error has occurred while mounting LittleFS");
+    return;
+  }
+
+  pinManager.begin();
 
   pinMode(deviceConfig.getPulsePin(), OUTPUT);
   digitalWrite(deviceConfig.getPulsePin(), deviceConfig.getPulseInverted() ? HIGH : LOW);
