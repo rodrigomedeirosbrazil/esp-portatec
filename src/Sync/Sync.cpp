@@ -204,7 +204,7 @@ void Sync::handlePusherMessage(String message) {
     DEBUG_PRINTLN("[Pusher] Datetime sync command received");
     unsigned long unix_time = doc["data"]["unix_time"]; // Assuming "unix_time" key
     if (unix_time > 0) { // Ensure a valid timestamp is received
-      clock.sync(unix_time);
+      systemClock.sync(unix_time);
       DEBUG_PRINT("[Clock] Synchronized to Unix time: ");
       DEBUG_PRINTLN(unix_time);
     } else {

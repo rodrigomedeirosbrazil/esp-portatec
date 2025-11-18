@@ -7,7 +7,7 @@
 #include "Webserver/Webserver.h"
 #include "Sync/Sync.h"
 #include "Sensor/Sensor.h"
-#include "Clock/Clock.h" // Include Clock.h
+#include "Clock/SystemClock.h" // Include SystemClock.h
 
 #include "globals.h"
 
@@ -20,7 +20,7 @@ DeviceConfig deviceConfig;
 Sync sync;
 Webserver webserver;
 Sensor sensor;
-Clock clock; // Instantiate global Clock instance
+SystemClock systemClock; // Instantiate global Clock instance
 
 unsigned long lastCheck = 0;
 unsigned long lastSyncCheck = 0;

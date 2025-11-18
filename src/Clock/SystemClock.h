@@ -1,11 +1,11 @@
-#ifndef CLOCK_H
-#define CLOCK_H
+#ifndef SYSTEMCLOCK_H
+#define SYSTEMCLOCK_H
 
 #include <Arduino.h> // For millis() and unsigned long
 
-class Clock {
+class SystemClock {
 public:
-    Clock();
+    SystemClock();
     void sync(unsigned long unix_time);
     unsigned long getUnixTime();
 
@@ -14,4 +14,4 @@ private:
     unsigned long _lastSyncMillis;
 };
 
-#endif // CLOCK_H
+#endif // SYSTEMCLOCK_H

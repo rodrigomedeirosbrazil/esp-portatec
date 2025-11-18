@@ -1,15 +1,15 @@
-#include "Clock.h"
+#include "SystemClock.h"
 
-Clock::Clock() : _lastSyncUnixTime(0), _lastSyncMillis(0) {
+SystemClock::SystemClock() : _lastSyncUnixTime(0), _lastSyncMillis(0) {
     // Constructor initializes with 0, meaning time is not yet set.
 }
 
-void Clock::sync(unsigned long unix_time) {
+void SystemClock::sync(unsigned long unix_time) {
     _lastSyncUnixTime = unix_time;
     _lastSyncMillis = millis();
 }
 
-unsigned long Clock::getUnixTime() {
+unsigned long SystemClock::getUnixTime() {
     if (_lastSyncUnixTime == 0) {
         return 0; // Time not yet synchronized
     }
