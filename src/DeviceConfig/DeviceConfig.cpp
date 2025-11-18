@@ -21,6 +21,7 @@ void DeviceConfig::initDefaultConfig() {
   config.pulsePin = 3; // Default pin
   config.sensorPin = UNCONFIGURED_PIN; // Default sensor pin
   config.pulseInverted = false; // Default pulse inverted
+  strcpy(config.pin, "123456"); // Default pin
 }
 
 void DeviceConfig::loadConfig() {
@@ -72,4 +73,9 @@ void DeviceConfig::setWifiSSID(const char* ssid) {
 void DeviceConfig::setWifiNetworkPass(const char* password) {
     strncpy(config.wifiNetworkPass, password, sizeof(config.wifiNetworkPass) - 1);
     config.wifiNetworkPass[sizeof(config.wifiNetworkPass) - 1] = '\0';
+}
+
+void DeviceConfig::setPin(const char* pin) {
+    strncpy(config.pin, pin, sizeof(config.pin) - 1);
+    config.pin[sizeof(config.pin) - 1] = '\0';
 }

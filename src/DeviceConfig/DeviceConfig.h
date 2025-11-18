@@ -23,6 +23,7 @@ private:
         uint8_t pulsePin;
         uint8_t sensorPin;
         bool pulseInverted;
+        char pin[7];
     };
 
     Config config;
@@ -41,6 +42,7 @@ public:
     uint8_t getPulsePin() const { return config.pulsePin; }
     uint8_t getSensorPin() const { return config.sensorPin; }
     bool getPulseInverted() const { return config.pulseInverted; }
+    const char* getPin() const { return config.pin; }
     void setDeviceName(const char* name);
     void setPassword(const char* password);
     void setWifiSSID(const char* ssid);
@@ -48,6 +50,7 @@ public:
     void setPulsePin(uint8_t pin);
     void setSensorPin(uint8_t pin);
     void setPulseInverted(bool inverted);
+    void setPin(const char* pin);
     void initDefaultConfig();
     void loadConfig();
     void saveConfig();
