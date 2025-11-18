@@ -200,6 +200,20 @@ void Sync::handlePusherMessage(String message) {
     return;
   }
 
+  if (event == "datetime") {
+    DEBUG_PRINTLN("[Pusher] Datetime sync command received");
+    unsigned long unix_time = doc["data"]["unix_time"]; // Assuming "unix_time" key
+    if (unix_time > 0) { // Ensure a valid timestamp is received
+      clock.sync(unix_time);
+      DEBUG_PRINT("[Clock] Synchronized to Unix time: ");
+      DEBUG_PRINTLN(unix_time);
+    } else {
+      DEBUG_PRINTLN("[Clock] Received invalid datetime payload.");
+    }
+    lastSuccessfulSync = millis();
+    return;
+  }
+
   DEBUG_PRINT("[Pusher] Unknown event: ");
   DEBUG_PRINTLN(event);
 }
