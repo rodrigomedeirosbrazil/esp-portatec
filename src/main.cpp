@@ -70,18 +70,6 @@ void loop() {
 
   sync.handle();
 
-  static unsigned long lastTimePrint = 0;
-  if (millis() - lastTimePrint > 5000) { // Print every 5 seconds
-    unsigned long currentTime = clock.getUnixTime();
-    if (currentTime > 0) {
-      DEBUG_PRINT("[Clock] Current Unix Time: ");
-      DEBUG_PRINTLN(currentTime);
-    } else {
-      DEBUG_PRINTLN("[Clock] Time not yet synchronized.");
-    }
-    lastTimePrint = millis();
-  }
-
   if (sensor.hasChanged()) {
     if (sync.isConnected()) {
       if (millis() - lastSensorStatusSent >= 2000) {
