@@ -157,6 +157,10 @@ void Webserver::handleRoot() {
   html += ".status-display { font-size: 18px; margin: 20px auto; padding: 15px; border-radius: 8px; max-width: 300px; width: 100%; }";
   html += ".status-closed { background-color: #f44336; color: white; }";
   html += ".status-open { background-color: #4CAF50; color: white; }";
+  html += ".modal { display: none; position: fixed; z-index: 1; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.4); }";
+  html += ".modal-content { background-color: #fefefe; margin: 15% auto; padding: 20px; border: 1px solid #888; width: 80%; max-width: 300px; text-align: center; border-radius: 8px; }";
+  html += ".pin-inputs { display: flex; justify-content: center; gap: 10px; margin: 20px 0; }";
+  html += ".pin-inputs input { width: 40px; height: 40px; text-align: center; font-size: 20px; border: 1px solid #ddd; border-radius: 4px; }";
   html += "</style></head>";
   html += "<body>";
   html += "<h1>ESP-PORTATEC Control</h1>";
@@ -171,14 +175,52 @@ void Webserver::handleRoot() {
   }
 
   html += "<div class='button-container'>";
-  html += "<button id='pulseButton' onclick='pulseGpio()'>Abrir</button>";
+  html += "<button id='pulseButton' onclick='openPinModal()'>Abrir</button>";
   html += "<button onclick=\"window.location.href='/info'\">Informações</button>";
   html += "</div>";
+
+  // PIN Modal
+  html += "<div id='pinModal' class='modal'>";
+  html += "<div class='modal-content'>";
+  html += "<h2>Digite o PIN</h2>";
+  html += "<div class='pin-inputs'>";
+  for (int i = 0; i < 6; i++) {
+    html += "<input type='text' maxlength='1' id='pin" + String(i) + "'>";
+  }
+  html += "</div>";
+  html += "<button onclick='submitPin()'>Abrir</button>";
+  html += "</div>";
+  html += "</div>";
+
   html += "<script>";
-  html += "function pulseGpio() {";
+  html += "function openPinModal() { document.getElementById('pinModal').style.display = 'block'; document.getElementById('pin0').focus(); }";
+  html += "function submitPin() {";
+  html += "  let pin = '';";
+  html += "  for (let i = 0; i < 6; i++) { pin += document.getElementById('pin' + i).value; }";
+  html += "  pulseGpio(pin);";
+  html += "  document.getElementById('pinModal').style.display = 'none';";
+  html += "  for (let i = 0; i < 6; i++) { document.getElementById('pin' + i).value = ''; }";
+  html += "}";
+  html += "const pinInputs = document.querySelector('.pin-inputs');";
+  html += "pinInputs.addEventListener('input', (e) => {";
+  html += "  const target = e.target;";
+  html += "  const next = target.nextElementSibling;";
+  html += "  if (target.value && next) { next.focus(); }";
+  html += "});";
+  html += "pinInputs.addEventListener('keydown', (e) => {";
+  html += "  const target = e.target;";
+  html += "  const prev = target.previousElementSibling;";
+  html += "  if (e.key === 'Backspace' && !target.value && prev) { prev.focus(); }";
+  html += "});";
+  html += "pinInputs.addEventListener('paste', (e) => {";
+  html += "  e.preventDefault();";
+  html += "  const paste = (e.clipboardData || window.clipboardData).getData('text');";
+  html += "  const inputs = pinInputs.querySelectorAll('input');";
+  html += "  for (let i = 0; i < Math.min(inputs.length, paste.length); i++) { inputs[i].value = paste[i]; }";
+  html += "  inputs[Math.min(inputs.length - 1, paste.length - 1)].focus();";
+  html += "});";
+  html += "function pulseGpio(pin) {";
   html += "  const button = document.getElementById('pulseButton');";
-  html += "  var pin = prompt('Por favor, digite o PIN para abrir');";
-  html += "  if (pin === null || pin === '') { return; }";
   html += "  button.disabled = true;";
   html += "  button.classList.add('working');";
   html += "  button.textContent = 'Abrindo...';";
