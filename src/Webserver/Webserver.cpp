@@ -127,6 +127,7 @@ void Webserver::handleNotFound() {
 void Webserver::handlePulse() {
   if (instance->server.hasArg("pin")) {
     String pin = instance->server.arg("pin");
+    pin.trim(); // Remove any accidental whitespace
     if (pin == deviceConfig.getPin()) {
       uint8_t pin = deviceConfig.getPulsePin();
       bool inverted = deviceConfig.getPulseInverted();
@@ -135,7 +136,9 @@ void Webserver::handlePulse() {
       digitalWrite(pin, inverted ? HIGH : LOW);
       instance->server.send(200, "text/plain", "GPIO " + String(pin) + " toggled");
     } else {
-      instance->server.send(401, "text/plain", "Invalid PIN");
+      // Debugging aid: show what was received vs expected
+      String errorMsg = "Invalid PIN. Received: '" + pin + "', Expected: '" + String(deviceConfig.getPin()) + "'";
+      instance->server.send(401, "text/plain", errorMsg);
     }
   } else {
     instance->server.send(400, "text/plain", "PIN required");
