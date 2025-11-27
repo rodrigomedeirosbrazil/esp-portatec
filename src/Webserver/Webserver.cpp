@@ -166,7 +166,7 @@ void Webserver::handleRoot() {
   html += ".status-open { background-color: #4CAF50; color: white; }";
   html += ".modal { display: none; position: fixed; z-index: 1; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.4); }";
   html += ".modal-content { background-color: #fefefe; margin: 15% auto; padding: 20px; border: 1px solid #888; width: 80%; max-width: 300px; text-align: center; border-radius: 8px; }";
-  html += ".pin-inputs { display: flex; justify-content: center; gap: 10px; margin: 20px 0; }";
+  html += ".pin-inputs { display: flex; justify-content: center; gap: 5px; margin: 20px 0; }";
   html += ".pin-inputs input { width: 40px; height: 40px; text-align: center; font-size: 20px; border: 1px solid #ddd; border-radius: 4px; }";
   html += "</style></head>";
   instance->server.sendContent(html);
