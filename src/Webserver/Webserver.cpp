@@ -198,15 +198,20 @@ void Webserver::handleRoot() {
   justify-content: center;
   gap: 5px;
   margin: 20px 0;
+  width: 100%;
 }
 
 .pin-inputs input {
-  width: 40px;
-  height: 40px;
+  width: 12vw;
+  max-width: 45px;
+  min-width: 30px;
+  height: 45px;
   text-align: center;
-  font-size: 20px;
+  font-size: 16px;
   border: 1px solid #ddd;
-  border-radius: 4px;
+  border-radius: 6px;
+  -webkit-appearance: none;
+  appearance: none;
 }
 
 .block-events * {
