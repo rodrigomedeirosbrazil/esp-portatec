@@ -2,6 +2,7 @@
 
 #include "Webserver.h"
 #include "../Sync/Sync.h"
+#include <ctime> // For time_t, gmtime, strftime
 
 // Initialize static instance pointer
 Webserver* Webserver::instance = nullptr;
@@ -326,6 +327,10 @@ void Webserver::handleInfo() {
   html += "<span class='info-value'>" + String(days) + "d " + String(hours) + "h " + String(minutes) + "m " + String(seconds) + "s</span>";
   html += "</div>";
   html += "<div class='info-row'>";
+  html += "<span class='info-label'>Data e Hora Atual:</span>";
+  html += "<span class='info-value'>" + formatUnixTime(systemClock.getUnixTime()) + "</span>";
+  html += "</div>";
+  html += "<div class='info-row'>";
   html += "<span class='info-label'>Pino Pulso:</span>";
   html += "<span class='info-value'>GPIO " + String(deviceConfig.getPulsePin()) + "</span>";
   html += "</div>";
@@ -450,4 +455,19 @@ void Webserver::handleInfo() {
 
 void Webserver::handleClient() {
   server.handleClient();
+}
+
+String Webserver::formatUnixTime(unsigned long unix_timestamp) {
+  if (unix_timestamp == 0) return "N/A (Não sincronizado)";
+
+  time_t rawtime = unix_timestamp;
+  struct tm * ti;
+  ti = localtime(&rawtime); // Use localtime for local time, or gmtime for UTC
+
+  char buffer[64]; // Increased size to safely accommodate the formatted string
+  // Example: 2025-11-26 14:30:00
+  snprintf(buffer, sizeof(buffer), "%04d-%02d-%02d %02d:%02d:%02d",
+          ti->tm_year + 1900, ti->tm_mon + 1, ti->tm_mday,
+          ti->tm_hour, ti->tm_min, ti->tm_sec);
+  return String(buffer);
 }
