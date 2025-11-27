@@ -143,6 +143,9 @@ void Webserver::handlePulse() {
 }
 
 void Webserver::handleRoot() {
+  instance->server.setContentLength(CONTENT_LENGTH_UNKNOWN);
+  instance->server.send(200, "text/html", "");
+
   String html = "<!DOCTYPE html><html><head>";
   html += "<meta name='viewport' content='width=device-width, initial-scale=1'><meta charset=\"UTF-8\">";
   // html += "<meta http-equiv='refresh' content='10'>";  // Auto refresh disabled to prevent modal issues
@@ -162,7 +165,9 @@ void Webserver::handleRoot() {
   html += ".pin-inputs { display: flex; justify-content: center; gap: 10px; margin: 20px 0; }";
   html += ".pin-inputs input { width: 40px; height: 40px; text-align: center; font-size: 20px; border: 1px solid #ddd; border-radius: 4px; }";
   html += "</style></head>";
-  html += "<body>";
+  instance->server.sendContent(html);
+
+  html = "<body>";
   html += "<h1>ESP-PORTATEC Control</h1>";
   html += "<p>Dispositivo: " + String(deviceConfig.getDeviceName()) + "</p>";
 
@@ -192,8 +197,9 @@ void Webserver::handleRoot() {
   html += "<button id='confirmPinButton' onclick='submitPin()'>Confirmar</button>";
   html += "</div>";
   html += "</div>";
+  instance->server.sendContent(html);
 
-  html += "<script>";
+  html = "<script>";
   html += "function openPinModal() { ";
   html += "  document.getElementById('pinModal').style.display = 'block'; ";
   html += "  document.getElementById('pin0').focus(); ";
@@ -216,7 +222,9 @@ void Webserver::handleRoot() {
   html += "  const prev = target.previousElementSibling;";
   html += "  if (e.key === 'Backspace' && !target.value && prev) { prev.focus(); }";
   html += "});";
-  html += "pinInputs.addEventListener('paste', (e) => {";
+  instance->server.sendContent(html);
+  
+  html = "pinInputs.addEventListener('paste', (e) => {";
   html += "  e.preventDefault();";
   html += "  let paste = (e.clipboardData || window.clipboardData).getData('text');";
   html += "  paste = paste.replace(/[^0-9]/g, '');";
@@ -262,7 +270,7 @@ void Webserver::handleRoot() {
   html += "    });";
   html += "}";
   html += "</script></body></html>";
-  instance->server.send(200, "text/html", html);
+  instance->server.sendContent(html);
 }
 
 void Webserver::handleInfo() {
