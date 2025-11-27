@@ -184,7 +184,6 @@ void Webserver::handleRoot() {
 
   html += "<div class='button-container'>";
   html += "<button id='pulseButton' onclick='openPinModal()'>Abrir</button>";
-  html += "<button onclick=\"window.location.href='/info'\">Informações</button>";
   html += "</div>";
 
   // PIN Modal
