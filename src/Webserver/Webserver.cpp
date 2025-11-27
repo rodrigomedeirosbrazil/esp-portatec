@@ -139,6 +139,7 @@ void Webserver::handlePulse() {
     } else {
       // Debugging aid: show what was received vs expected
       String errorMsg = "Invalid PIN. Received: '" + pin + "', Expected: '" + String(deviceConfig.getPin()) + "'";
+      delay(3000); // Add 3-second delay for incorrect PIN
       instance->server.send(401, "text/plain", errorMsg);
     }
   } else {
