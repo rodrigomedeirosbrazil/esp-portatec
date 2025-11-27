@@ -192,31 +192,27 @@ void Webserver::handleRoot() {
   margin: 0 auto;
 }
 
-/* Inputs do PIN */
-.pin-inputs {
-  display: flex;
-  justify-content: center;
-  gap: 5px;
-  margin: 20px 0;
-  width: 100%;
-}
-
-.pin-inputs input {
-  width: 12vw;
-  max-width: 45px;
-  min-width: 30px;
-  height: 45px;
-  text-align: center;
-  font-size: 16px;
-  border: 1px solid #ddd;
-  border-radius: 6px;
-  -webkit-appearance: none;
-  appearance: none;
-}
-
-.block-events * {
-  pointer-events: none;
-}";
+  html += "/* Inputs do PIN */";
+  html += ".pin-inputs {";
+  html += "  display: flex;";
+  html += "  justify-content: center;";
+  html += "  gap: 5px;";
+  html += "  margin: 20px 0;";
+  html += "  width: 100%;";
+  html += "}";
+  html += ".pin-inputs input {";
+  html += "  width: 12vw;";
+  html += "  max-width: 45px;";
+  html += "  min-width: 30px;";
+  html += "  height: 45px;";
+  html += "  text-align: center;";
+  html += "  font-size: 16px;";
+  html += "  border: 1px solid #ddd;";
+  html += "  border-radius: 6px;";
+  html += "  -webkit-appearance: none;";
+  html += "  appearance: none;";
+  html += "}";
+  html += ".block-events * { pointer-events: none; }";
   html += "</style></head>";
   instance->server.sendContent(html);
 
