@@ -164,10 +164,54 @@ void Webserver::handleRoot() {
   html += ".status-display { font-size: 18px; margin: 20px auto; padding: 15px; border-radius: 8px; max-width: 300px; width: 100%; }";
   html += ".status-closed { background-color: #f44336; color: white; }";
   html += ".status-open { background-color: #4CAF50; color: white; }";
-  html += ".modal { display: none; position: fixed; z-index: 1; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.4); }";
-  html += ".modal-content { background-color: #fefefe; margin: 15% auto; padding: 20px; border: 1px solid #888; width: 80%; max-width: 300px; text-align: center; border-radius: 8px; }";
-  html += ".pin-inputs { display: flex; justify-content: center; gap: 5px; margin: 20px 0; }";
-  html += ".pin-inputs input { width: 40px; height: 40px; text-align: center; font-size: 20px; border: 1px solid #ddd; border-radius: 4px; }";
+  html += "/* Modal */
+.modal {
+  display: none;
+  position: fixed;
+  z-index: 1;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  overflow: auto;
+  background-color: rgba(0,0,0,0.4);
+}
+
+/* Modal centralizado e responsivo */
+.modal-content {
+  background-color: #fefefe;
+  position: relative;
+  top: 50%;
+  transform: translateY(-50%);
+  padding: 20px;
+  border: 1px solid #888;
+  width: 90vw;
+  max-width: 300px;
+  text-align: center;
+  border-radius: 8px;
+  margin: 0 auto;
+}
+
+/* Inputs do PIN */
+.pin-inputs {
+  display: flex;
+  justify-content: center;
+  gap: 5px;
+  margin: 20px 0;
+}
+
+.pin-inputs input {
+  width: 40px;
+  height: 40px;
+  text-align: center;
+  font-size: 20px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+.block-events * {
+  pointer-events: none;
+}";
   html += "</style></head>";
   instance->server.sendContent(html);
 
@@ -219,6 +263,11 @@ void Webserver::handleRoot() {
   // Chunk 4: JS Listeners
   html = "const pinInputs = document.querySelector('.pin-inputs');";
   html += "if (pinInputs) {"; // Added safety check
+  html += "  pinInputs.querySelectorAll('input').forEach(input => {";
+  html += "    input.addEventListener('focus', () => {";
+  html += "      setTimeout(() => input.select(), 10);"; // Selects digit on focus
+  html += "    });";
+  html += "  });";
   html += "pinInputs.addEventListener('input', (e) => {";
   html += "  const target = e.target;";
   html += "  target.value = target.value.replace(/[^0-9]/g, '');";
@@ -245,6 +294,7 @@ void Webserver::handleRoot() {
   html = "function pulseGpio(pin) {";
   html += "  const button = document.getElementById('confirmPinButton');";
   html += "  const pinMessage = document.getElementById('pinMessage');";
+  html += "  const pinInputsContainer = document.querySelector('.pin-inputs');"; // Get the container
   html += "  button.disabled = true;";
   html += "  button.classList.add('working');";
   html += "  const originalText = button.textContent;";
@@ -254,14 +304,21 @@ void Webserver::handleRoot() {
   html += "      if (response.status !== 200) {";
   html += "        pinMessage.style.color = 'red';";
   html += "        pinMessage.textContent = 'PIN incorreto!';";
-  html += "        const pin0 = document.getElementById('pin0');";
-  html += "        if (pin0) {";
-  html += "          for (let i = 0; i < 6; i++) {";
-  html += "             const input = document.getElementById('pin' + i);";
-  html += "             if (input) { input.select(); }";
-  html += "          }";
-  html += "          pin0.focus();";
+  html += "        ";
+  html += "        if (pinInputsContainer) {"; // Safety check
+  html += "          pinInputsContainer.classList.add('block-events');"; // Block events temporarily
   html += "        }";
+  html += "        const inputs = pinInputsContainer.querySelectorAll('input');";
+  html += "        inputs.forEach(input => input.value = '');"; // Clear all inputs
+  html += "        if (inputs.length > 0) {";
+  html += "          inputs[0].focus();"; // Focus first input
+  html += "          inputs[0].select();"; // Select content of first input
+  html += "        }";
+  html += "        setTimeout(() => {";
+  html += "          if (pinInputsContainer) {";
+  html += "            pinInputsContainer.classList.remove('block-events');"; // Re-enable events
+  html += "          }";
+  html += "        }, 50);"; // Short delay for re-enabling events
   html += "      } else {";
   html += "        pinMessage.style.color = 'green';";
   html += "        pinMessage.textContent = 'Sucesso: Comando enviado!';";
