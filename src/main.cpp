@@ -85,7 +85,7 @@ void loop() {
 
 void setupAPMode() {
   DEBUG_PRINTLN("Setting up AP mode...");
-  WiFi.softAP(deviceConfig.getDeviceName(), deviceConfig.getPassword());
+  WiFi.softAP(deviceConfig.getDeviceName());
   myIP = WiFi.softAPIP();
   DEBUG_PRINT("AP mode started. SSID: ");
   DEBUG_PRINT(deviceConfig.getDeviceName());
