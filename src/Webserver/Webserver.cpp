@@ -164,34 +164,32 @@ void Webserver::handleRoot() {
   html += ".status-display { font-size: 18px; margin: 20px auto; padding: 15px; border-radius: 8px; max-width: 300px; width: 100%; }";
   html += ".status-closed { background-color: #f44336; color: white; }";
   html += ".status-open { background-color: #4CAF50; color: white; }";
-  html += "/* Modal */
-.modal {
-  display: none;
-  position: fixed;
-  z-index: 1;
-  left: 0;
-  top: 0;
-  width: 100%;
-  height: 100%;
-  overflow: auto;
-  background-color: rgba(0,0,0,0.4);
-}
-
-/* Modal centralizado e responsivo */
-.modal-content {
-  background-color: #fefefe;
-  position: relative;
-  top: 50%;
-  transform: translateY(-50%);
-  padding: 20px;
-  border: 1px solid #888;
-  width: 90vw;
-  max-width: 300px;
-  text-align: center;
-  border-radius: 8px;
-  margin: 0 auto;
-}
-
+  html += ".modal {";
+  html += "  display: none;";
+  html += "  position: fixed;";
+  html += "  z-index: 1;";
+  html += "  left: 0;";
+  html += "  top: 0;";
+  html += "  width: 100%;";
+  html += "  height: 100%;";
+  html += "  overflow: auto;";
+  html += "  background-color: rgba(0,0,0,0.4);";
+  html += "}";
+  html += "";
+  html += "/* Modal centralizado e responsivo */";
+  html += ".modal-content {";
+  html += "  background-color: #fefefe;";
+  html += "  position: relative;";
+  html += "  top: 50%;";
+  html += "  transform: translateY(-50%);";
+  html += "  padding: 20px;";
+  html += "  border: 1px solid #888;";
+  html += "  width: 90vw;";
+  html += "  max-width: 300px;";
+  html += "  text-align: center;";
+  html += "  border-radius: 8px;";
+  html += "  margin: 0 auto;";
+  html += "}";
   html += "/* Inputs do PIN */";
   html += ".pin-inputs {";
   html += "  display: flex;";
