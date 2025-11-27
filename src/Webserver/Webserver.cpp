@@ -202,6 +202,7 @@ void Webserver::handleRoot() {
   html += "</div>";
   instance->server.sendContent(html);
 
+  // Chunk 3: JS Functions (openPinModal, submitPin)
   html = "<script>";
   html += "function openPinModal() { ";
   html += "  document.getElementById('pinModal').style.display = 'block'; ";
@@ -213,7 +214,11 @@ void Webserver::handleRoot() {
   html += "  for (let i = 0; i < 6; i++) { pin += document.getElementById('pin' + i).value; }";
   html += "  pulseGpio(pin);";
   html += "}";
-  html += "const pinInputs = document.querySelector('.pin-inputs');";
+  instance->server.sendContent(html);
+
+  // Chunk 4: JS Listeners
+  html = "const pinInputs = document.querySelector('.pin-inputs');";
+  html += "if (pinInputs) {"; // Added safety check
   html += "pinInputs.addEventListener('input', (e) => {";
   html += "  const target = e.target;";
   html += "  target.value = target.value.replace(/[^0-9]/g, '');";
@@ -225,9 +230,7 @@ void Webserver::handleRoot() {
   html += "  const prev = target.previousElementSibling;";
   html += "  if (e.key === 'Backspace' && !target.value && prev) { prev.focus(); }";
   html += "});";
-  instance->server.sendContent(html);
-  
-  html = "pinInputs.addEventListener('paste', (e) => {";
+  html += "pinInputs.addEventListener('paste', (e) => {";
   html += "  e.preventDefault();";
   html += "  let paste = (e.clipboardData || window.clipboardData).getData('text');";
   html += "  paste = paste.replace(/[^0-9]/g, '');";
@@ -235,7 +238,11 @@ void Webserver::handleRoot() {
   html += "  for (let i = 0; i < Math.min(inputs.length, paste.length); i++) { inputs[i].value = paste[i]; }";
   html += "  if (paste.length > 0) { inputs[Math.min(inputs.length - 1, paste.length - 1)].focus(); }";
   html += "});";
-  html += "function pulseGpio(pin) {";
+  html += "}"; // End safety check
+  instance->server.sendContent(html);
+  
+  // Chunk 5: pulseGpio function
+  html = "function pulseGpio(pin) {";
   html += "  const button = document.getElementById('confirmPinButton');";
   html += "  const pinMessage = document.getElementById('pinMessage');";
   html += "  button.disabled = true;";
@@ -277,6 +284,9 @@ void Webserver::handleRoot() {
 }
 
 void Webserver::handleInfo() {
+  instance->server.setContentLength(CONTENT_LENGTH_UNKNOWN);
+  instance->server.send(200, "text/html", "");
+
   String html = "<!DOCTYPE html><html><head>";
   html += "<meta name='viewport' content='width=device-width, initial-scale=1'><meta charset=\"UTF-8\">";
   html += "<meta http-equiv='refresh' content='10'>";  // Auto refresh every 10 seconds
@@ -301,9 +311,10 @@ void Webserver::handleInfo() {
   html += "<body>";
   html += "<div class='container'>";
   html += "<h1>Informações do Sistema</h1>";
+  instance->server.sendContent(html);
 
-  // Device Information
-  html += "<div class='section'>";
+  // Chunk 2: Device Information
+  html = "<div class='section'>";
   html += "<h2>Informações do Dispositivo</h2>";
   html += "<div class='info-row'>";
   html += "<span class='info-label'>Nome do Dispositivo:</span>";
@@ -343,9 +354,10 @@ void Webserver::handleInfo() {
   }
   html += "</div>";
   html += "</div>";
+  instance->server.sendContent(html);
 
-  // WiFi Information
-  html += "<div class='section'>";
+  // Chunk 3: WiFi Information
+  html = "<div class='section'>";
   html += "<h2>Informações WiFi</h2>";
   html += "<div class='info-row'>";
   html += "<span class='info-label'>Status WiFi:</span>";
@@ -387,9 +399,10 @@ void Webserver::handleInfo() {
     html += "<span class='info-value'>" + String(deviceConfig.getWifiSSID()) + "</span>";
   }
   html += "</div>";
+  instance->server.sendContent(html);
 
-  // Access Point Information
-  html += "<div class='section'>";
+  // Chunk 4: AP Info, Sync Info and Footer
+  html = "<div class='section'>";
   html += "<h2>Ponto de Acesso</h2>";
   html += "<div class='info-row'>";
   html += "<span class='info-label'>Nome do AP:</span>";
@@ -450,7 +463,7 @@ void Webserver::handleInfo() {
   html += "</div>";
   html += "</body></html>";
 
-  instance->server.send(200, "text/html", html);
+  instance->server.sendContent(html);
 }
 
 void Webserver::handleClient() {
