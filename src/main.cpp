@@ -60,6 +60,8 @@ void setup() {
 
   WiFi.begin(deviceConfig.getWifiSSID(), deviceConfig.getWifiNetworkPass());
   waitForWifiConnection();
+
+  systemClock.setupNtp();
 }
 
 void loop() {
@@ -69,6 +71,7 @@ void loop() {
   handleConnection();
 
   sync.handle();
+  systemClock.loop();
 
   if (sensor.hasChanged()) {
     if (sync.isConnected()) {

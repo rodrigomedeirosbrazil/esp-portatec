@@ -1,6 +1,6 @@
 #include "SystemClock.h"
 
-SystemClock::SystemClock() : _lastSyncUnixTime(0), _lastSyncMillis(0) {
+SystemClock::SystemClock() : _lastSyncUnixTime(0), _lastSyncMillis(0), _lastNtpSyncMillis(0) {
     // Constructor initializes with 0, meaning time is not yet set.
 }
 
@@ -19,4 +19,21 @@ unsigned long SystemClock::getUnixTime() {
     // Convert elapsed milliseconds to seconds.
     unsigned long elapsedSeconds = elapsedMillis / 1000;
     return _lastSyncUnixTime + elapsedSeconds;
+}
+
+void SystemClock::setupNtp() {
+    // UTC-3 for Brazil, no daylight saving (0)
+    configTime(-3 * 3600, 0, "pool.ntp.org", "time.nist.gov");
+}
+
+void SystemClock::loop() {
+    // Check every hour (3600000 ms)
+    if (millis() - _lastNtpSyncMillis > 3600000 || _lastNtpSyncMillis == 0) {
+        time_t now = time(nullptr);
+        // Check if time is valid (e.g., > year 2020)
+        if (now > 1577836800) {
+            sync(now);
+            _lastNtpSyncMillis = millis();
+        }
+    }
 }
