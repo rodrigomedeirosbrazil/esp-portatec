@@ -9,9 +9,8 @@ class Webserver {
         ESP8266WebServer server;
         static Webserver* instance;  // Static instance pointer
 
-    public:
-        Webserver();
-        void handleClient();
+        // Helper static function
+        static String formatUnixTime(unsigned long unix_timestamp);
 
         // Static handler functions
         static void handleConfig();
@@ -20,6 +19,10 @@ class Webserver {
         static void handlePulse();
         static void handleRoot();
         static void handleInfo();
+
+    public:
+        Webserver();
+        void handleClient();
 };
 
 #endif

@@ -2,6 +2,7 @@
 
 #include "Webserver.h"
 #include "../Sync/Sync.h"
+#include <ctime> // For time_t, gmtime, strftime
 
 // Initialize static instance pointer
 Webserver* Webserver::instance = nullptr;
@@ -48,6 +49,7 @@ void Webserver::handleConfig() {
   html += "<input type='text' name='devicename' placeholder='Device Name' value='" + String(deviceConfig.getDeviceName()) + "' required><br>";
   html += "<input type='password' name='password' placeholder='WiFi Password' value='" + String(deviceConfig.getPassword()) + "' required><br>";
   html += "<input type='number' name='pulsepin' placeholder='Pulse Pin' value='" + String(deviceConfig.getPulsePin()) + "' required><br>";
+  html += "<input type='password' name='pin' placeholder='PIN' value='" + String(deviceConfig.getPin()) + "' required><br>";
   html += String("<input type='checkbox' name='pulseinverted' id='pulseinverted' value='true'") + (deviceConfig.getPulseInverted() ? " checked" : "") + "><label for='pulseinverted'>Invert Pulse</label><br>";
   html += "<input type='number' name='sensorpin' placeholder='Sensor Pin' value='" + (deviceConfig.getSensorPin() == DeviceConfig::UNCONFIGURED_PIN ? "" : String(deviceConfig.getSensorPin())) + "'><br>";
   html += "</div>";
@@ -72,6 +74,7 @@ void Webserver::handleSaveConfig() {
     && instance->server.hasArg("sensorpin")
     && instance->server.hasArg("wifissid")
     && instance->server.hasArg("wifipass")
+    && instance->server.hasArg("pin")
   ) {
     String deviceName = instance->server.arg("devicename");
     String password = instance->server.arg("password");
@@ -80,16 +83,19 @@ void Webserver::handleSaveConfig() {
     String sensorPinStr = instance->server.arg("sensorpin");
     String wifiSSID = instance->server.arg("wifissid");
     String wifiPass = instance->server.arg("wifipass");
+    String pin = instance->server.arg("pin");
 
     if (
       deviceName.length() > 0
       && password.length() > 0
       && pulsePinStr.length() > 0
+      && pin.length() > 0
     ) {
       deviceConfig.setDeviceName(deviceName.c_str());
       deviceConfig.setPassword(password.c_str());
       deviceConfig.setPulsePin(pulsePinStr.toInt());
       deviceConfig.setPulseInverted(pulseInvertedStr == "true");
+      deviceConfig.setPin(pin.c_str());
 
       if (sensorPinStr.length() > 0) {
         deviceConfig.setSensorPin(sensorPinStr.toInt());
@@ -120,18 +126,32 @@ void Webserver::handleNotFound() {
 }
 
 void Webserver::handlePulse() {
-  uint8_t pin = deviceConfig.getPulsePin();
-  bool inverted = deviceConfig.getPulseInverted();
-  digitalWrite(pin, inverted ? LOW : HIGH);
-  delay(500);
-  digitalWrite(pin, inverted ? HIGH : LOW);
-  instance->server.send(200, "text/plain", "GPIO " + String(pin) + " toggled");
+  if (instance->server.hasArg("pin")) {
+    String pin = instance->server.arg("pin");
+    pin.trim(); // Remove any accidental whitespace
+    if (pin == deviceConfig.getPin()) {
+      uint8_t pin = deviceConfig.getPulsePin();
+      bool inverted = deviceConfig.getPulseInverted();
+      digitalWrite(pin, inverted ? LOW : HIGH);
+      delay(500);
+      digitalWrite(pin, inverted ? HIGH : LOW);
+      instance->server.send(200, "text/plain", "GPIO " + String(pin) + " toggled");
+    } else {
+      delay(3000); // Add 3-second delay for incorrect PIN
+      instance->server.send(401, "application/json", "{\"success\":false,\"message\":\"PIN incorreto!\"}");
+    }
+  } else {
+    instance->server.send(400, "text/plain", "PIN required");
+  }
 }
 
 void Webserver::handleRoot() {
+  instance->server.setContentLength(CONTENT_LENGTH_UNKNOWN);
+  instance->server.send(200, "text/html", "");
+
   String html = "<!DOCTYPE html><html><head>";
   html += "<meta name='viewport' content='width=device-width, initial-scale=1'><meta charset=\"UTF-8\">";
-  html += "<meta http-equiv='refresh' content='10'>";  // Auto refresh every 10 seconds
+  // html += "<meta http-equiv='refresh' content='10'>";  // Auto refresh disabled to prevent modal issues
   html += "<title>ESP-PORTATEC Control</title>";
   html += "<style>";
   html += "body { font-family: Arial, sans-serif; margin: 20px; text-align: center; }";
@@ -143,8 +163,57 @@ void Webserver::handleRoot() {
   html += ".status-display { font-size: 18px; margin: 20px auto; padding: 15px; border-radius: 8px; max-width: 300px; width: 100%; }";
   html += ".status-closed { background-color: #f44336; color: white; }";
   html += ".status-open { background-color: #4CAF50; color: white; }";
+  html += ".modal {";
+  html += "  display: none;";
+  html += "  position: fixed;";
+  html += "  z-index: 1;";
+  html += "  left: 0;";
+  html += "  top: 0;";
+  html += "  width: 100%;";
+  html += "  height: 100%;";
+  html += "  overflow: auto;";
+  html += "  background-color: rgba(0,0,0,0.4);";
+  html += "}";
+  html += "";
+  html += "/* Modal centralizado e responsivo */";
+  html += ".modal-content {";
+  html += "  background-color: #fefefe;";
+  html += "  position: relative;";
+  html += "  top: 50%;";
+  html += "  transform: translateY(-50%);";
+  html += "  padding: 20px;";
+  html += "  border: 1px solid #888;";
+  html += "  width: 90vw;";
+  html += "  max-width: 300px;";
+  html += "  text-align: center;";
+  html += "  border-radius: 8px;";
+  html += "  margin: 0 auto;";
+  html += "}";
+  html += "/* Inputs do PIN */";
+  html += ".pin-inputs {";
+  html += "  display: flex;";
+  html += "  justify-content: center;";
+  html += "  gap: 5px;";
+  html += "  margin: 20px 0;";
+  html += "  width: 100%;";
+  html += "}";
+  html += ".pin-inputs input {";
+  html += "  width: 12vw;";
+  html += "  max-width: 45px;";
+  html += "  min-width: 30px;";
+  html += "  height: 45px;";
+  html += "  text-align: center;";
+  html += "  font-size: 16px;";
+  html += "  border: 1px solid #ddd;";
+  html += "  border-radius: 6px;";
+  html += "  -webkit-appearance: none;";
+  html += "  appearance: none;";
+  html += "}";
+  html += ".block-events * { pointer-events: none; }";
   html += "</style></head>";
-  html += "<body>";
+  instance->server.sendContent(html);
+
+  html = "<body>";
   html += "<h1>ESP-PORTATEC Control</h1>";
   html += "<p>Dispositivo: " + String(deviceConfig.getDeviceName()) + "</p>";
 
@@ -157,31 +226,122 @@ void Webserver::handleRoot() {
   }
 
   html += "<div class='button-container'>";
-  html += "<button id='pulseButton' onclick='pulseGpio()'>Abrir</button>";
-  html += "<button onclick=\"window.location.href='/info'\">Informações</button>";
+  html += "<button id='pulseButton' onclick='openPinModal()'>Abrir</button>";
   html += "</div>";
-  html += "<script>";
-  html += "function pulseGpio() {";
-  html += "  const button = document.getElementById('pulseButton');";
+
+  // PIN Modal
+  html += "<div id='pinModal' class='modal'>";
+  html += "<div class='modal-content'>";
+  html += "<h2>Digite o PIN</h2>";
+  html += "<div id='pinMessage' style='color: red; margin-bottom: 10px;'></div>";
+  html += "<div class='pin-inputs'>";
+  for (int i = 0; i < 6; i++) {
+    html += "<input type='tel' inputmode='numeric' pattern='[0-9]*' maxlength='1' id='pin" + String(i) + "'>";
+  }
+  html += "</div>";
+  html += "<button id='confirmPinButton' onclick='submitPin()'>Confirmar</button>";
+  html += "</div>";
+  html += "</div>";
+  instance->server.sendContent(html);
+
+  // Chunk 3: JS Functions (openPinModal, submitPin)
+  html = "<script>";
+  html += "function openPinModal() { ";
+  html += "  document.getElementById('pinModal').style.display = 'block'; ";
+  html += "  document.getElementById('pin0').focus(); ";
+  html += "  document.getElementById('pinMessage').textContent = ''; ";
+  html += "}";
+  html += "function submitPin() {";
+  html += "  let pin = '';";
+  html += "  for (let i = 0; i < 6; i++) { pin += document.getElementById('pin' + i).value; }";
+  html += "  pulseGpio(pin);";
+  html += "}";
+  instance->server.sendContent(html);
+
+  // Chunk 4: JS Listeners
+  html = "const pinInputs = document.querySelector('.pin-inputs');";
+  html += "if (pinInputs) {"; // Added safety check
+  html += "  pinInputs.querySelectorAll('input').forEach(input => {";
+  html += "    input.addEventListener('focus', () => {";
+  html += "      setTimeout(() => input.select(), 10);"; // Selects digit on focus
+  html += "    });";
+  html += "  });";
+  html += "pinInputs.addEventListener('input', (e) => {";
+  html += "  const target = e.target;";
+  html += "  target.value = target.value.replace(/[^0-9]/g, '');";
+  html += "  const next = target.nextElementSibling;";
+  html += "  if (target.value && next) { next.focus(); }";
+  html += "});";
+  html += "pinInputs.addEventListener('keydown', (e) => {";
+  html += "  const target = e.target;";
+  html += "  const prev = target.previousElementSibling;";
+  html += "  if (e.key === 'Backspace' && !target.value && prev) { prev.focus(); }";
+  html += "});";
+  html += "pinInputs.addEventListener('paste', (e) => {";
+  html += "  e.preventDefault();";
+  html += "  let paste = (e.clipboardData || window.clipboardData).getData('text');";
+  html += "  paste = paste.replace(/[^0-9]/g, '');";
+  html += "  const inputs = pinInputs.querySelectorAll('input');";
+  html += "  for (let i = 0; i < Math.min(inputs.length, paste.length); i++) { inputs[i].value = paste[i]; }";
+  html += "  if (paste.length > 0) { inputs[Math.min(inputs.length - 1, paste.length - 1)].focus(); }";
+  html += "});";
+  html += "}"; // End safety check
+  instance->server.sendContent(html);
+  
+  // Chunk 5: pulseGpio function
+  html = "function pulseGpio(pin) {";
+  html += "  const button = document.getElementById('confirmPinButton');";
+  html += "  const pinMessage = document.getElementById('pinMessage');";
+  html += "  const pinInputsContainer = document.querySelector('.pin-inputs');"; // Get the container
   html += "  button.disabled = true;";
   html += "  button.classList.add('working');";
-  html += "  button.textContent = 'Abrindo...';";
-  html += "  fetch('/pulse')";
-  html += "    .then(response => response.text())";
+  html += "  const originalText = button.textContent;";
+  html += "  button.textContent = 'Validando...';";
+  html += "  fetch('/pulse?pin=' + pin)";
+  html += "    .then(response => {";
+  html += "      if (response.status !== 200) {";
+  html += "        pinMessage.style.color = 'red';";
+  html += "        pinMessage.textContent = 'PIN incorreto!';";
+  html += "        ";
+  html += "        if (pinInputsContainer) {"; // Safety check
+  html += "          pinInputsContainer.classList.add('block-events');"; // Block events temporarily
+  html += "        }";
+  html += "        const inputs = pinInputsContainer.querySelectorAll('input');";
+  html += "        inputs.forEach(input => input.value = '');"; // Clear all inputs
+  html += "        if (inputs.length > 0) {";
+  html += "          inputs[0].focus();"; // Focus first input
+  html += "          inputs[0].select();"; // Select content of first input
+  html += "        }";
+  html += "        setTimeout(() => {";
+  html += "          if (pinInputsContainer) {";
+  html += "            pinInputsContainer.classList.remove('block-events');"; // Re-enable events
+  html += "          }";
+  html += "        }, 50);"; // Short delay for re-enabling events
+  html += "      } else {";
+  html += "        pinMessage.style.color = 'green';";
+  html += "        pinMessage.textContent = 'Sucesso: Comando enviado!';";
+  html += "        setTimeout(() => {";
+  html += "          document.getElementById('pinModal').style.display = 'none';";
+  html += "          for (let i = 0; i < 6; i++) { document.getElementById('pin' + i).value = ''; }";
+  html += "        }, 1000);";
+  html += "      }";
+  html += "      return response.text();";
+  html += "    })";
   html += "    .then(data => {";
   html += "      console.log(data);";
-  html += "      setTimeout(() => {";
-  html += "        button.disabled = false;";
-  html += "        button.classList.remove('working');";
-  html += "        button.textContent = 'Abrir';";
-  html += "      }, 500);";
+  html += "      button.disabled = false;";
+  html += "      button.classList.remove('working');";
+  html += "      button.textContent = originalText;";
   html += "    });";
   html += "}";
   html += "</script></body></html>";
-  instance->server.send(200, "text/html", html);
+  instance->server.sendContent(html);
 }
 
 void Webserver::handleInfo() {
+  instance->server.setContentLength(CONTENT_LENGTH_UNKNOWN);
+  instance->server.send(200, "text/html", "");
+
   String html = "<!DOCTYPE html><html><head>";
   html += "<meta name='viewport' content='width=device-width, initial-scale=1'><meta charset=\"UTF-8\">";
   html += "<meta http-equiv='refresh' content='10'>";  // Auto refresh every 10 seconds
@@ -206,9 +366,10 @@ void Webserver::handleInfo() {
   html += "<body>";
   html += "<div class='container'>";
   html += "<h1>Informações do Sistema</h1>";
+  instance->server.sendContent(html);
 
-  // Device Information
-  html += "<div class='section'>";
+  // Chunk 2: Device Information
+  html = "<div class='section'>";
   html += "<h2>Informações do Dispositivo</h2>";
   html += "<div class='info-row'>";
   html += "<span class='info-label'>Nome do Dispositivo:</span>";
@@ -232,6 +393,10 @@ void Webserver::handleInfo() {
   html += "<span class='info-value'>" + String(days) + "d " + String(hours) + "h " + String(minutes) + "m " + String(seconds) + "s</span>";
   html += "</div>";
   html += "<div class='info-row'>";
+  html += "<span class='info-label'>Data e Hora Atual:</span>";
+  html += "<span class='info-value'>" + formatUnixTime(systemClock.getUnixTime()) + "</span>";
+  html += "</div>";
+  html += "<div class='info-row'>";
   html += "<span class='info-label'>Pino Pulso:</span>";
   html += "<span class='info-value'>GPIO " + String(deviceConfig.getPulsePin()) + "</span>";
   html += "</div>";
@@ -244,9 +409,10 @@ void Webserver::handleInfo() {
   }
   html += "</div>";
   html += "</div>";
+  instance->server.sendContent(html);
 
-  // WiFi Information
-  html += "<div class='section'>";
+  // Chunk 3: WiFi Information
+  html = "<div class='section'>";
   html += "<h2>Informações WiFi</h2>";
   html += "<div class='info-row'>";
   html += "<span class='info-label'>Status WiFi:</span>";
@@ -288,9 +454,10 @@ void Webserver::handleInfo() {
     html += "<span class='info-value'>" + String(deviceConfig.getWifiSSID()) + "</span>";
   }
   html += "</div>";
+  instance->server.sendContent(html);
 
-  // Access Point Information
-  html += "<div class='section'>";
+  // Chunk 4: AP Info, Sync Info and Footer
+  html = "<div class='section'>";
   html += "<h2>Ponto de Acesso</h2>";
   html += "<div class='info-row'>";
   html += "<span class='info-label'>Nome do AP:</span>";
@@ -351,9 +518,24 @@ void Webserver::handleInfo() {
   html += "</div>";
   html += "</body></html>";
 
-  instance->server.send(200, "text/html", html);
+  instance->server.sendContent(html);
 }
 
 void Webserver::handleClient() {
   server.handleClient();
+}
+
+String Webserver::formatUnixTime(unsigned long unix_timestamp) {
+  if (unix_timestamp == 0) return "N/A (Não sincronizado)";
+
+  time_t rawtime = unix_timestamp;
+  struct tm * ti;
+  ti = localtime(&rawtime); // Use localtime for local time, or gmtime for UTC
+
+  char buffer[64]; // Increased size to safely accommodate the formatted string
+  // Example: 2025-11-26 14:30:00
+  snprintf(buffer, sizeof(buffer), "%04d-%02d-%02d %02d:%02d:%02d",
+          ti->tm_year + 1900, ti->tm_mon + 1, ti->tm_mday,
+          ti->tm_hour, ti->tm_min, ti->tm_sec);
+  return String(buffer);
 }
