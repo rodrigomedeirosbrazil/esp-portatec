@@ -137,10 +137,8 @@ void Webserver::handlePulse() {
       digitalWrite(pin, inverted ? HIGH : LOW);
       instance->server.send(200, "text/plain", "GPIO " + String(pin) + " toggled");
     } else {
-      // Debugging aid: show what was received vs expected
-      String errorMsg = "Invalid PIN. Received: '" + pin + "', Expected: '" + String(deviceConfig.getPin()) + "'";
       delay(3000); // Add 3-second delay for incorrect PIN
-      instance->server.send(401, "text/plain", errorMsg);
+      instance->server.send(401, "application/json", "{\"success\":false,\"message\":\"PIN incorreto!\"}");
     }
   } else {
     instance->server.send(400, "text/plain", "PIN required");
