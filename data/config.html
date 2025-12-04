@@ -1,0 +1,32 @@
+<!DOCTYPE html><html><head>
+<meta name='viewport' content='width=device-width, initial-scale=1'><meta charset="UTF-8">
+<title>ESP-PORTATEC Configuration</title>
+<style>
+body { font-family: Arial, sans-serif; margin: 20px; text-align: center; }
+input { padding: 10px; margin: 10px; width: 80%; max-width: 300px; }
+button { padding: 10px 20px; font-size: 16px; background-color: #4CAF50; color: white; border: none; border-radius: 4px; cursor: pointer; }
+button:hover { background-color: #45a049; }
+.section { margin: 20px 0; padding: 20px; border: 1px solid #ddd; border-radius: 4px; }
+h2 { margin-top: 0; }
+.chip-id { font-size: 14px; color: #666; margin-bottom: 20px; }
+</style></head>
+<body>
+<h1>ESP-PORTATEC Configuration</h1>
+<div class='chip-id'>Chip ID: %CHIP_ID%</div>
+<form action='/saveconfig' method='POST'>
+<div class='section'>
+<h2>Device Configuration</h2>
+<input type='text' name='devicename' placeholder='Device Name' value='%DEVICE_NAME%' required><br>
+<input type='password' name='password' placeholder='WiFi Password' value='%PASSWORD%' required><br>
+<input type='number' name='pulsepin' placeholder='Pulse Pin' value='%PULSE_PIN%' required><br>
+<input type='password' name='pin' placeholder='PIN' value='%PIN%' required><br>
+<input type='checkbox' name='pulseinverted' id='pulseinverted' value='true' %PULSE_INVERTED_CHECKED%><label for='pulseinverted'>Invert Pulse</label><br>
+<input type='number' name='sensorpin' placeholder='Sensor Pin' value='%SENSOR_PIN%'><br>
+</div>
+<div class='section'>
+<h2>WiFi Network Configuration</h2>
+<input type='text' name='wifissid' placeholder='WiFi Network Name (SSID)' value='%WIFI_SSID%'><br>
+<input type='password' name='wifipass' placeholder='WiFi Network Password' value='%WIFI_PASS%'><br>
+</div>
+<button type='submit'>Save Configuration</button>
+</form></body></html>
