@@ -17,7 +17,7 @@ Webserver::Webserver(): server(80) {
   server.on("/info", handleInfo);
 
   if (deviceConfig.isConfigured()) {
-    server.on("/", handleRoot);
+    server.on("/", handleIndex);
   } else {
     server.on("/", handleConfig);
   }
@@ -121,7 +121,7 @@ void Webserver::handlePulse() {
   }
 }
 
-void Webserver::handleRoot() {
+void Webserver::handleIndex() {
   sendHtml("/index.html", [](String html) -> String {
     html.replace("%DEVICE_NAME%", String(deviceConfig.getDeviceName()));
     
