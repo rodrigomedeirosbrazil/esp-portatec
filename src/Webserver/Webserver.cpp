@@ -127,7 +127,7 @@ void Webserver::handleIndex() {
     
     if (deviceConfig.getSensorPin() != DeviceConfig::UNCONFIGURED_PIN) {
       bool sensorState = digitalRead(deviceConfig.getSensorPin());
-      String statusHtml = "<div class='status-display " + String(sensorState ? \"status-closed\" : \"status-open\") + "'>";
+      String statusHtml = "<div class='status-display " + String(sensorState ? "status-closed" : "status-open") + "'>";
       statusHtml += "Status: " + String(sensorState ? "FECHADO" : "ABERTO");
       statusHtml += "</div>";
       html.replace("%SENSOR_STATUS_HTML%", statusHtml);
