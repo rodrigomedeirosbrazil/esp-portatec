@@ -139,186 +139,97 @@ void Webserver::handleRoot() {
 }
 
 void Webserver::handleInfo() {
-  instance->server.setContentLength(CONTENT_LENGTH_UNKNOWN);
-  instance->server.send(200, "text/html", "");
-
-  String html = "<!DOCTYPE html><html><head>";
-  html += "<meta name='viewport' content='width=device-width, initial-scale=1'><meta charset=\"UTF-8\">";
-  html += "<meta http-equiv='refresh' content='10'>";  // Auto refresh every 10 seconds
-  html += "<title>ESP-PORTATEC Informações</title>";
-  html += "<style>";
-  html += "body { font-family: Arial, sans-serif; margin: 20px; }";
-  html += ".container { max-width: 600px; margin: 0 auto; }";
-  html += ".section { margin: 20px 0; padding: 20px; border: 1px solid #ddd; border-radius: 8px; background-color: #f9f9f9; }";
-  html += "h1 { text-align: center; color: #333; }";
-  html += "h2 { margin-top: 0; color: #4CAF50; border-bottom: 2px solid #4CAF50; padding-bottom: 5px; }";
-  html += ".info-row { display: flex; justify-content: space-between; margin: 10px 0; padding: 8px; background-color: white; border-radius: 4px; }";
-  html += ".info-label { font-weight: bold; color: #555; }";
-  html += ".info-value { color: #333; }";
-  html += ".status-connected { color: #4CAF50; font-weight: bold; }";
-  html += ".status-disconnected { color: #f44336; font-weight: bold; }";
-  html += ".status-syncing { color: #2196F3; font-weight: bold; }";
-  html += ".back-button { display: block; width: 200px; margin: 20px auto; padding: 10px; text-align: center; background-color: #4CAF50; color: white; text-decoration: none; border-radius: 4px; }";
-  html += ".back-button:hover { background-color: #45a049; }";
-  html += ".signal-bar { display: inline-block; width: 100px; height: 20px; background: linear-gradient(90deg, #f44336 0%, #ff9800 50%, #4CAF50 100%); border-radius: 10px; position: relative; }";
-  html += ".signal-indicator { position: absolute; top: 0; left: 0; height: 100%; background-color: rgba(255,255,255,0.8); border-radius: 10px; }";
-  html += "</style></head>";
-  html += "<body>";
-  html += "<div class='container'>";
-  html += "<h1>Informações do Sistema</h1>";
-  instance->server.sendContent(html);
-
-  // Chunk 2: Device Information
-  html = "<div class='section'>";
-  html += "<h2>Informações do Dispositivo</h2>";
-  html += "<div class='info-row'>";
-  html += "<span class='info-label'>Nome do Dispositivo:</span>";
-  html += "<span class='info-value'>" + String(deviceConfig.getDeviceName()) + "</span>";
-  html += "</div>";
-  html += "<div class='info-row'>";
-  html += "<span class='info-label'>Chip ID:</span>";
-  html += "<span class='info-value'>" + String(ESP.getChipId(), HEX) + "</span>";
-  html += "</div>";
-  html += "<div class='info-row'>";
-  html += "<span class='info-label'>Versão do Firmware:</span>";
-  html += "<span class='info-value'>" + String(DeviceConfig::FIRMWARE_VERSION) + "</span>";
-  html += "</div>";
-  html += "<div class='info-row'>";
-  html += "<span class='info-label'>Tempo Ligado:</span>";
-  unsigned long uptime = millis() / 1000;
-  unsigned long days = uptime / 86400;
-  unsigned long hours = (uptime % 86400) / 3600;
-  unsigned long minutes = (uptime % 3600) / 60;
-  unsigned long seconds = uptime % 60;
-  html += "<span class='info-value'>" + String(days) + "d " + String(hours) + "h " + String(minutes) + "m " + String(seconds) + "s</span>";
-  html += "</div>";
-  html += "<div class='info-row'>";
-  html += "<span class='info-label'>Data e Hora Atual:</span>";
-  html += "<span class='info-value'>" + formatUnixTime(systemClock.getUnixTime()) + "</span>";
-  html += "</div>";
-  html += "<div class='info-row'>";
-  html += "<span class='info-label'>Pino Pulso:</span>";
-  html += "<span class='info-value'>GPIO " + String(deviceConfig.getPulsePin()) + "</span>";
-  html += "</div>";
-  html += "<div class='info-row'>";
-  html += "<span class='info-label'>Pino Sensor:</span>";
-  if (deviceConfig.getSensorPin() != DeviceConfig::UNCONFIGURED_PIN) {
-    html += "<span class='info-value'>GPIO " + String(deviceConfig.getSensorPin()) + " (" + (digitalRead(deviceConfig.getSensorPin()) ? "ALTO" : "BAIXO") + ")</span>";
-  } else {
-    html += "<span class='info-value'>N/A</span>";
-  }
-  html += "</div>";
-  html += "</div>";
-  instance->server.sendContent(html);
-
-  // Chunk 3: WiFi Information
-  html = "<div class='section'>";
-  html += "<h2>Informações WiFi</h2>";
-  html += "<div class='info-row'>";
-  html += "<span class='info-label'>Status WiFi:</span>";
-  if (WiFi.status() == WL_CONNECTED) {
-    html += "<span class='info-value status-connected'>Conectado</span>";
-  } else {
-    html += "<span class='info-value status-disconnected'>Desconectado</span>";
-  }
-  html += "</div>";
-
-  if (WiFi.status() == WL_CONNECTED) {
-    html += "<div class='info-row'>";
-    html += "<span class='info-label'>Nome da Rede:</span>";
-    html += "<span class='info-value'>" + WiFi.SSID() + "</span>";
-    html += "</div>";
-    html += "<div class='info-row'>";
-    html += "<span class='info-label'>Endereço IP:</span>";
-    html += "<span class='info-value'>" + WiFi.localIP().toString() + "</span>";
-    html += "</div>";
-    html += "<div class='info-row'>";
-    html += "<span class='info-label'>Gateway:</span>";
-    html += "<span class='info-value'>" + WiFi.gatewayIP().toString() + "</span>";
-    html += "</div>";
-    html += "<div class='info-row'>";
-    html += "<span class='info-label'>DNS:</span>";
-    html += "<span class='info-value'>" + WiFi.dnsIP().toString() + "</span>";
-    html += "</div>";
-    html += "<div class='info-row'>";
-    html += "<span class='info-label'>Potência do Sinal:</span>";
-    int32_t rssi = WiFi.RSSI();
-    int signalPercent = constrain(map(rssi, -100, -30, 0, 100), 0, 100);
-    html += "<span class='info-value'>" + String(rssi) + " dBm (" + String(signalPercent) + "%) ";
-    html += "<div class='signal-bar'><div class='signal-indicator' style='width:" + String(100-signalPercent) + "%'></div></div>";
-    html += "</span>";
-    html += "</div>";
-  } else {
-    html += "<div class='info-row'>";
-    html += "<span class='info-label'>Rede Configurada:</span>";
-    html += "<span class='info-value'>" + String(deviceConfig.getWifiSSID()) + "</span>";
-  }
-  html += "</div>";
-  instance->server.sendContent(html);
-
-  // Chunk 4: AP Info, Sync Info and Footer
-  html = "<div class='section'>";
-  html += "<h2>Ponto de Acesso</h2>";
-  html += "<div class='info-row'>";
-  html += "<span class='info-label'>Nome do AP:</span>";
-  html += "<span class='info-value'>" + String(deviceConfig.getDeviceName()) + "</span>";
-  html += "</div>";
-  html += "<div class='info-row'>";
-  html += "<span class='info-label'>IP do AP:</span>";
-  html += "<span class='info-value'>" + WiFi.softAPIP().toString() + "</span>";
-  html += "</div>";
-  html += "<div class='info-row'>";
-  html += "<span class='info-label'>Clientes Conectados:</span>";
-  html += "<span class='info-value'>" + String(WiFi.softAPgetStationNum()) + "</span>";
-  html += "</div>";
-  html += "</div>";
-
-  // Sync Information
-  html += "<div class='section'>";
-  html += "<h2>Informações de Sincronização</h2>";
-  html += "<div class='info-row'>";
-  html += "<span class='info-label'>Status da Conexão:</span>";
-  if (sync.isConnected()) {
-    html += "<span class='info-value status-connected'>Conectado</span>";
-  } else {
-    html += "<span class='info-value status-disconnected'>Desconectado</span>";
-  }
-  html += "</div>";
-  html += "<div class='info-row'>";
-  html += "<span class='info-label'>Status da Sincronização:</span>";
-  if (sync.isSyncing()) {
-    html += "<span class='info-value status-syncing'>Sincronizando</span>";
-  } else if (sync.isConnected()) {
-    html += "<span class='info-value status-disconnected'>Parado</span>";
-  } else {
-    html += "<span class='info-value status-disconnected'>Offline</span>";
-  }
-  html += "</div>";
-  html += "<div class='info-row'>";
-  html += "<span class='info-label'>Última Sincronização:</span>";
-  unsigned long lastSync = sync.getLastSuccessfulSync();
-  if (lastSync > 0) {
-    unsigned long timeSinceSync = (millis() - lastSync) / 1000;
-    if (timeSinceSync < 60) {
-      html += "<span class='info-value'>" + String(timeSinceSync) + " segundos atrás</span>";
-    } else if (timeSinceSync < 3600) {
-      html += "<span class='info-value'>" + String(timeSinceSync / 60) + " minutos atrás</span>";
-    } else if (timeSinceSync < 86400) {
-      html += "<span class='info-value'>" + String(timeSinceSync / 3600) + " horas atrás</span>";
+  sendHtml("/info.html", [](String html) -> String {
+    // Device Info
+    html.replace("%DEVICE_NAME%", String(deviceConfig.getDeviceName()));
+    html.replace("%CHIP_ID%", String(ESP.getChipId(), HEX));
+    html.replace("%FIRMWARE_VERSION%", String(DeviceConfig::FIRMWARE_VERSION));
+    
+    unsigned long uptime = millis() / 1000;
+    unsigned long days = uptime / 86400;
+    unsigned long hours = (uptime % 86400) / 3600;
+    unsigned long minutes = (uptime % 3600) / 60;
+    unsigned long seconds = uptime % 60;
+    html.replace("%UPTIME%", String(days) + "d " + String(hours) + "h " + String(minutes) + "m " + String(seconds) + "s");
+    
+    html.replace("%CURRENT_TIME%", formatUnixTime(systemClock.getUnixTime()));
+    html.replace("%PULSE_PIN%", String(deviceConfig.getPulsePin()));
+    
+    if (deviceConfig.getSensorPin() != DeviceConfig::UNCONFIGURED_PIN) {
+        html.replace("%SENSOR_PIN_INFO%", "GPIO " + String(deviceConfig.getSensorPin()) + " (" + (digitalRead(deviceConfig.getSensorPin()) ? "ALTO" : "BAIXO") + ")");
     } else {
-      html += "<span class='info-value'>" + String(timeSinceSync / 86400) + " dias atrás</span>";
+        html.replace("%SENSOR_PIN_INFO%", "N/A");
     }
-  } else {
-    html += "<span class='info-value status-disconnected'>Nunca sincronizado</span>";
-  }
-  html += "</div>";
-  html += "</div>";
 
-  html += "<a href='/' class='back-button'>← Voltar</a>";
-  html += "</div>";
-  html += "</body></html>";
+    // WiFi Info
+    if (WiFi.status() == WL_CONNECTED) {
+        html.replace("%WIFI_STATUS_CLASS%", "status-connected");
+        html.replace("%WIFI_STATUS_TEXT%", "Conectado");
+        
+        String wifiDetails = "<div class='info-row'><span class='info-label'>Nome da Rede:</span><span class='info-value'>" + WiFi.SSID() + "</span></div>";
+        wifiDetails += "<div class='info-row'><span class='info-label'>Endereço IP:</span><span class='info-value'>" + WiFi.localIP().toString() + "</span></div>";
+        wifiDetails += "<div class='info-row'><span class='info-label'>Gateway:</span><span class='info-value'>" + WiFi.gatewayIP().toString() + "</span></div>";
+        wifiDetails += "<div class='info-row'><span class='info-label'>DNS:</span><span class='info-value'>" + WiFi.dnsIP().toString() + "</span></div>";
+        
+        int32_t rssi = WiFi.RSSI();
+        int signalPercent = constrain(map(rssi, -100, -30, 0, 100), 0, 100);
+        wifiDetails += "<div class='info-row'><span class='info-label'>Potência do Sinal:</span><span class='info-value'>" + String(rssi) + " dBm (" + String(signalPercent) + "%) ";
+        wifiDetails += "<div class='signal-bar'><div class='signal-indicator' style='width:" + String(100-signalPercent) + "%'></div></div></span></div>";
+        
+        html.replace("%WIFI_DETAILS%", wifiDetails);
+    } else {
+        html.replace("%WIFI_STATUS_CLASS%", "status-disconnected");
+        html.replace("%WIFI_STATUS_TEXT%", "Desconectado");
+        html.replace("%WIFI_DETAILS%", "<div class='info-row'><span class='info-label'>Rede Configurada:</span><span class='info-value'>" + String(deviceConfig.getWifiSSID()) + "</span></div>");
+    }
 
-  instance->server.sendContent(html);
+    // AP Info
+    html.replace("%AP_SSID%", String(deviceConfig.getDeviceName()));
+    html.replace("%AP_IP%", WiFi.softAPIP().toString());
+    html.replace("%AP_STATIONS%", String(WiFi.softAPgetStationNum()));
+
+    // Sync Info
+    if (sync.isConnected()) {
+        html.replace("%SYNC_CONNECTION_CLASS%", "status-connected");
+        html.replace("%SYNC_CONNECTION_TEXT%", "Conectado");
+    } else {
+        html.replace("%SYNC_CONNECTION_CLASS%", "status-disconnected");
+        html.replace("%SYNC_CONNECTION_TEXT%", "Desconectado");
+    }
+
+    if (sync.isSyncing()) {
+        html.replace("%SYNC_STATUS_CLASS%", "status-syncing");
+        html.replace("%SYNC_STATUS_TEXT%", "Sincronizando");
+    } else if (sync.isConnected()) {
+        html.replace("%SYNC_STATUS_CLASS%", "status-disconnected");
+        html.replace("%SYNC_STATUS_TEXT%", "Parado");
+    } else {
+        html.replace("%SYNC_STATUS_CLASS%", "status-disconnected");
+        html.replace("%SYNC_STATUS_TEXT%", "Offline");
+    }
+
+    unsigned long lastSync = sync.getLastSuccessfulSync();
+    if (lastSync > 0) {
+        unsigned long timeSinceSync = (millis() - lastSync) / 1000;
+        String timeText;
+        if (timeSinceSync < 60) {
+            timeText = String(timeSinceSync) + " segundos atrás";
+        } else if (timeSinceSync < 3600) {
+            timeText = String(timeSinceSync / 60) + " minutos atrás";
+        } else if (timeSinceSync < 86400) {
+            timeText = String(timeSinceSync / 3600) + " horas atrás";
+        } else {
+            timeText = String(timeSinceSync / 86400) + " dias atrás";
+        }
+        html.replace("%LAST_SYNC_CLASS%", "");
+        html.replace("%LAST_SYNC_TEXT%", timeText);
+    } else {
+        html.replace("%LAST_SYNC_CLASS%", "status-disconnected");
+        html.replace("%LAST_SYNC_TEXT%", "Nunca sincronizado");
+    }
+
+    return html;
+  });
 }
 
 void Webserver::handleClient() {
