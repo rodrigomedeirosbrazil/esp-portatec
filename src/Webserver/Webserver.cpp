@@ -3,12 +3,14 @@
 #include "Webserver.h"
 #include "../Sync/Sync.h"
 #include <ctime> // For time_t, gmtime, strftime
+#include <LittleFS.h>
 
 // Initialize static instance pointer
 Webserver* Webserver::instance = nullptr;
 
 Webserver::Webserver(): server(80) {
   instance = this;  // Set the instance pointer
+  LittleFS.begin();
 
   server.on("/config", handleConfig);
   server.on("/saveconfig", HTTP_POST, handleSaveConfig);
@@ -50,7 +52,7 @@ void Webserver::handleConfig() {
   html += "<input type='password' name='password' placeholder='WiFi Password' value='" + String(deviceConfig.getPassword()) + "' required><br>";
   html += "<input type='number' name='pulsepin' placeholder='Pulse Pin' value='" + String(deviceConfig.getPulsePin()) + "' required><br>";
   html += "<input type='password' name='pin' placeholder='PIN' value='" + String(deviceConfig.getPin()) + "' required><br>";
-  html += String("<input type='checkbox' name='pulseinverted' id='pulseinverted' value='true'") + (deviceConfig.getPulseInverted() ? " checked" : "") + "><label for='pulseinverted'>Invert Pulse</label><br>";
+  html += String("<input type='checkbox' name='pulseinverted' id='pulseinverted' value='true'") + (deviceConfig.getPulseInverted() ? " checked" : "") + ""><label for='pulseinverted'>Invert Pulse</label><br>";
   html += "<input type='number' name='sensorpin' placeholder='Sensor Pin' value='" + (deviceConfig.getSensorPin() == DeviceConfig::UNCONFIGURED_PIN ? "" : String(deviceConfig.getSensorPin())) + "'><br>";
   html += "</div>";
 
@@ -174,7 +176,6 @@ void Webserver::handleRoot() {
   html += "  overflow: auto;";
   html += "  background-color: rgba(0,0,0,0.4);";
   html += "}";
-  html += "";
   html += "/* Modal centralizado e responsivo */";
   html += ".modal-content {";
   html += "  background-color: #fefefe;";
@@ -211,9 +212,7 @@ void Webserver::handleRoot() {
   html += "}";
   html += ".block-events * { pointer-events: none; }";
   html += "</style></head>";
-  instance->server.sendContent(html);
-
-  html = "<body>";
+  html += "<body>";
   html += "<h1>ESP-PORTATEC Control</h1>";
   html += "<p>Dispositivo: " + String(deviceConfig.getDeviceName()) + "</p>";
 
@@ -260,7 +259,7 @@ void Webserver::handleRoot() {
 
   // Chunk 4: JS Listeners
   html = "const pinInputs = document.querySelector('.pin-inputs');";
-  html += "if (pinInputs) {"; // Added safety check
+  html += "if (pinInputs) { "; // Added safety check
   html += "  pinInputs.querySelectorAll('input').forEach(input => {";
   html += "    input.addEventListener('focus', () => {";
   html += "      setTimeout(() => input.select(), 10);"; // Selects digit on focus
@@ -287,7 +286,7 @@ void Webserver::handleRoot() {
   html += "});";
   html += "}"; // End safety check
   instance->server.sendContent(html);
-  
+
   // Chunk 5: pulseGpio function
   html = "function pulseGpio(pin) {";
   html += "  const button = document.getElementById('confirmPinButton');";
@@ -303,7 +302,7 @@ void Webserver::handleRoot() {
   html += "        pinMessage.style.color = 'red';";
   html += "        pinMessage.textContent = 'PIN incorreto!';";
   html += "        ";
-  html += "        if (pinInputsContainer) {"; // Safety check
+  html += "        if (pinInputsContainer) { "; // Safety check
   html += "          pinInputsContainer.classList.add('block-events');"; // Block events temporarily
   html += "        }";
   html += "        const inputs = pinInputsContainer.querySelectorAll('input');";
@@ -523,6 +522,28 @@ void Webserver::handleInfo() {
 
 void Webserver::handleClient() {
   server.handleClient();
+}
+
+void Webserver::sendHtml(const String& path, std::function<String(const String&)> processor) {
+  if (!LittleFS.exists(path)) {
+    instance->server.send(404, "text/plain", "File not found: " + path);
+    return;
+  }
+
+  File file = LittleFS.open(path, "r");
+  if (!file) {
+    instance->server.send(500, "text/plain", "Failed to open file: " + path);
+    return;
+  }
+
+  String html = file.readString();
+  file.close();
+
+  if (processor) {
+    html = processor(html);
+  }
+
+  instance->server.send(200, "text/html", html);
 }
 
 String Webserver::formatUnixTime(unsigned long unix_timestamp) {

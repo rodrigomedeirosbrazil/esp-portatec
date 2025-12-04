@@ -2,6 +2,7 @@
 #define WEB_SERVER_H
 
 #include <ESP8266WebServer.h>
+#include <functional>
 #include "../globals.h"
 
 class Webserver {
@@ -11,6 +12,7 @@ class Webserver {
 
         // Helper static function
         static String formatUnixTime(unsigned long unix_timestamp);
+        static void sendHtml(const String& path, std::function<String(const String&)> processor);
 
         // Static handler functions
         static void handleConfig();
