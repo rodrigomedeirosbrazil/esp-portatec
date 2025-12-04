@@ -28,44 +28,18 @@ Webserver::Webserver(): server(80) {
 }
 
 void Webserver::handleConfig() {
-  String html = "<!DOCTYPE html><html><head>";
-  html += "<meta name='viewport' content='width=device-width, initial-scale=1'><meta charset=\"UTF-8\">";
-  html += "<title>ESP-PORTATEC Configuration</title>";
-  html += "<style>";
-  html += "body { font-family: Arial, sans-serif; margin: 20px; text-align: center; }";
-  html += "input { padding: 10px; margin: 10px; width: 80%; max-width: 300px; }";
-  html += "button { padding: 10px 20px; font-size: 16px; background-color: #4CAF50; color: white; border: none; border-radius: 4px; cursor: pointer; }";
-  html += "button:hover { background-color: #45a049; }";
-  html += ".section { margin: 20px 0; padding: 20px; border: 1px solid #ddd; border-radius: 4px; }";
-  html += "h2 { margin-top: 0; }";
-  html += ".chip-id { font-size: 14px; color: #666; margin-bottom: 20px; }";
-  html += "</style></head>";
-  html += "<body>";
-  html += "<h1>ESP-PORTATEC Configuration</h1>";
-  html += "<div class='chip-id'>Chip ID: " + String(ESP.getChipId(), HEX) + "</div>";
-  html += "<form action='/saveconfig' method='POST'>";
-
-  // Device Configuration Section
-  html += "<div class='section'>";
-  html += "<h2>Device Configuration</h2>";
-  html += "<input type='text' name='devicename' placeholder='Device Name' value='" + String(deviceConfig.getDeviceName()) + "' required><br>";
-  html += "<input type='password' name='password' placeholder='WiFi Password' value='" + String(deviceConfig.getPassword()) + "' required><br>";
-  html += "<input type='number' name='pulsepin' placeholder='Pulse Pin' value='" + String(deviceConfig.getPulsePin()) + "' required><br>";
-  html += "<input type='password' name='pin' placeholder='PIN' value='" + String(deviceConfig.getPin()) + "' required><br>";
-  html += String("<input type='checkbox' name='pulseinverted' id='pulseinverted' value='true'") + (deviceConfig.getPulseInverted() ? " checked" : "") + ""><label for='pulseinverted'>Invert Pulse</label><br>";
-  html += "<input type='number' name='sensorpin' placeholder='Sensor Pin' value='" + (deviceConfig.getSensorPin() == DeviceConfig::UNCONFIGURED_PIN ? "" : String(deviceConfig.getSensorPin())) + "'><br>";
-  html += "</div>";
-
-  // WiFi Network Configuration Section
-  html += "<div class='section'>";
-  html += "<h2>WiFi Network Configuration</h2>";
-  html += "<input type='text' name='wifissid' placeholder='WiFi Network Name (SSID)' value='" + String(deviceConfig.getWifiSSID()) + "'><br>";
-  html += "<input type='password' name='wifipass' placeholder='WiFi Network Password' value='" + String(deviceConfig.getWifiNetworkPass()) + "'><br>";
-  html += "</div>";
-
-  html += "<button type='submit'>Save Configuration</button>";
-  html += "</form></body></html>";
-  instance->server.send(200, "text/html", html);
+  sendHtml("/config.html", [](String html) -> String {
+    html.replace("%CHIP_ID%", String(ESP.getChipId(), HEX));
+    html.replace("%DEVICE_NAME%", String(deviceConfig.getDeviceName()));
+    html.replace("%PASSWORD%", String(deviceConfig.getPassword()));
+    html.replace("%PULSE_PIN%", String(deviceConfig.getPulsePin()));
+    html.replace("%PIN%", String(deviceConfig.getPin()));
+    html.replace("%PULSE_INVERTED_CHECK%", deviceConfig.getPulseInverted() ? " checked" : "");
+    html.replace("%SENSOR_PIN%", deviceConfig.getSensorPin() == DeviceConfig::UNCONFIGURED_PIN ? "" : String(deviceConfig.getSensorPin()));
+    html.replace("%WIFI_SSID%", String(deviceConfig.getWifiSSID()));
+    html.replace("%WIFI_PASS%", String(deviceConfig.getWifiNetworkPass()));
+    return html;
+  });
 }
 
 void Webserver::handleSaveConfig() {
@@ -212,7 +186,9 @@ void Webserver::handleRoot() {
   html += "}";
   html += ".block-events * { pointer-events: none; }";
   html += "</style></head>";
-  html += "<body>";
+  instance->server.sendContent(html);
+
+  html = "<body>";
   html += "<h1>ESP-PORTATEC Control</h1>";
   html += "<p>Dispositivo: " + String(deviceConfig.getDeviceName()) + "</p>";
 
@@ -259,7 +235,7 @@ void Webserver::handleRoot() {
 
   // Chunk 4: JS Listeners
   html = "const pinInputs = document.querySelector('.pin-inputs');";
-  html += "if (pinInputs) { "; // Added safety check
+  html += "if (pinInputs) {"; // Added safety check
   html += "  pinInputs.querySelectorAll('input').forEach(input => {";
   html += "    input.addEventListener('focus', () => {";
   html += "      setTimeout(() => input.select(), 10);"; // Selects digit on focus
@@ -286,7 +262,7 @@ void Webserver::handleRoot() {
   html += "});";
   html += "}"; // End safety check
   instance->server.sendContent(html);
-
+  
   // Chunk 5: pulseGpio function
   html = "function pulseGpio(pin) {";
   html += "  const button = document.getElementById('confirmPinButton');";
@@ -302,7 +278,7 @@ void Webserver::handleRoot() {
   html += "        pinMessage.style.color = 'red';";
   html += "        pinMessage.textContent = 'PIN incorreto!';";
   html += "        ";
-  html += "        if (pinInputsContainer) { "; // Safety check
+  html += "        if (pinInputsContainer) {"; // Safety check
   html += "          pinInputsContainer.classList.add('block-events');"; // Block events temporarily
   html += "        }";
   html += "        const inputs = pinInputsContainer.querySelectorAll('input');";
