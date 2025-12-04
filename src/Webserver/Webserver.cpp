@@ -3,19 +3,21 @@
 #include "Webserver.h"
 #include "../Sync/Sync.h"
 #include <ctime> // For time_t, gmtime, strftime
+#include <LittleFS.h>
 
 // Initialize static instance pointer
 Webserver* Webserver::instance = nullptr;
 
 Webserver::Webserver(): server(80) {
   instance = this;  // Set the instance pointer
+  LittleFS.begin();
 
   server.on("/config", handleConfig);
   server.on("/saveconfig", HTTP_POST, handleSaveConfig);
   server.on("/info", handleInfo);
 
   if (deviceConfig.isConfigured()) {
-    server.on("/", handleRoot);
+    server.on("/", handleIndex);
   } else {
     server.on("/", handleConfig);
   }
@@ -26,44 +28,18 @@ Webserver::Webserver(): server(80) {
 }
 
 void Webserver::handleConfig() {
-  String html = "<!DOCTYPE html><html><head>";
-  html += "<meta name='viewport' content='width=device-width, initial-scale=1'><meta charset=\"UTF-8\">";
-  html += "<title>ESP-PORTATEC Configuration</title>";
-  html += "<style>";
-  html += "body { font-family: Arial, sans-serif; margin: 20px; text-align: center; }";
-  html += "input { padding: 10px; margin: 10px; width: 80%; max-width: 300px; }";
-  html += "button { padding: 10px 20px; font-size: 16px; background-color: #4CAF50; color: white; border: none; border-radius: 4px; cursor: pointer; }";
-  html += "button:hover { background-color: #45a049; }";
-  html += ".section { margin: 20px 0; padding: 20px; border: 1px solid #ddd; border-radius: 4px; }";
-  html += "h2 { margin-top: 0; }";
-  html += ".chip-id { font-size: 14px; color: #666; margin-bottom: 20px; }";
-  html += "</style></head>";
-  html += "<body>";
-  html += "<h1>ESP-PORTATEC Configuration</h1>";
-  html += "<div class='chip-id'>Chip ID: " + String(ESP.getChipId(), HEX) + "</div>";
-  html += "<form action='/saveconfig' method='POST'>";
-
-  // Device Configuration Section
-  html += "<div class='section'>";
-  html += "<h2>Device Configuration</h2>";
-  html += "<input type='text' name='devicename' placeholder='Device Name' value='" + String(deviceConfig.getDeviceName()) + "' required><br>";
-  html += "<input type='password' name='password' placeholder='WiFi Password' value='" + String(deviceConfig.getPassword()) + "' required><br>";
-  html += "<input type='number' name='pulsepin' placeholder='Pulse Pin' value='" + String(deviceConfig.getPulsePin()) + "' required><br>";
-  html += "<input type='password' name='pin' placeholder='PIN' value='" + String(deviceConfig.getPin()) + "' required><br>";
-  html += String("<input type='checkbox' name='pulseinverted' id='pulseinverted' value='true'") + (deviceConfig.getPulseInverted() ? " checked" : "") + "><label for='pulseinverted'>Invert Pulse</label><br>";
-  html += "<input type='number' name='sensorpin' placeholder='Sensor Pin' value='" + (deviceConfig.getSensorPin() == DeviceConfig::UNCONFIGURED_PIN ? "" : String(deviceConfig.getSensorPin())) + "'><br>";
-  html += "</div>";
-
-  // WiFi Network Configuration Section
-  html += "<div class='section'>";
-  html += "<h2>WiFi Network Configuration</h2>";
-  html += "<input type='text' name='wifissid' placeholder='WiFi Network Name (SSID)' value='" + String(deviceConfig.getWifiSSID()) + "'><br>";
-  html += "<input type='password' name='wifipass' placeholder='WiFi Network Password' value='" + String(deviceConfig.getWifiNetworkPass()) + "'><br>";
-  html += "</div>";
-
-  html += "<button type='submit'>Save Configuration</button>";
-  html += "</form></body></html>";
-  instance->server.send(200, "text/html", html);
+  sendHtml("/config.html", [](String html) -> String {
+    html.replace("%CHIP_ID%", String(ESP.getChipId(), HEX));
+    html.replace("%DEVICE_NAME%", String(deviceConfig.getDeviceName()));
+    html.replace("%PASSWORD%", String(deviceConfig.getPassword()));
+    html.replace("%PULSE_PIN%", String(deviceConfig.getPulsePin()));
+    html.replace("%PIN%", String(deviceConfig.getPin()));
+    html.replace("%PULSE_INVERTED_CHECK%", deviceConfig.getPulseInverted() ? " checked" : "");
+    html.replace("%SENSOR_PIN%", deviceConfig.getSensorPin() == DeviceConfig::UNCONFIGURED_PIN ? "" : String(deviceConfig.getSensorPin()));
+    html.replace("%WIFI_SSID%", String(deviceConfig.getWifiSSID()));
+    html.replace("%WIFI_PASS%", String(deviceConfig.getWifiNetworkPass()));
+    return html;
+  });
 }
 
 void Webserver::handleSaveConfig() {
@@ -145,384 +121,141 @@ void Webserver::handlePulse() {
   }
 }
 
-void Webserver::handleRoot() {
-  instance->server.setContentLength(CONTENT_LENGTH_UNKNOWN);
-  instance->server.send(200, "text/html", "");
-
-  String html = "<!DOCTYPE html><html><head>";
-  html += "<meta name='viewport' content='width=device-width, initial-scale=1'><meta charset=\"UTF-8\">";
-  // html += "<meta http-equiv='refresh' content='10'>";  // Auto refresh disabled to prevent modal issues
-  html += "<title>ESP-PORTATEC Control</title>";
-  html += "<style>";
-  html += "body { font-family: Arial, sans-serif; margin: 20px; text-align: center; }";
-  html += "button { padding: 10px 20px; font-size: 16px; background-color: #4CAF50; color: white; border: none; border-radius: 4px; cursor: pointer; margin: 5px; }";
-  html += "button:hover { background-color: #45a049; }";
-  html += "button:disabled { background-color: #cccccc; cursor: not-allowed; }";
-  html += ".working { background-color: #ff9800 !important; }";
-  html += ".button-container { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; margin: 20px 0; }";
-  html += ".status-display { font-size: 18px; margin: 20px auto; padding: 15px; border-radius: 8px; max-width: 300px; width: 100%; }";
-  html += ".status-closed { background-color: #f44336; color: white; }";
-  html += ".status-open { background-color: #4CAF50; color: white; }";
-  html += ".modal {";
-  html += "  display: none;";
-  html += "  position: fixed;";
-  html += "  z-index: 1;";
-  html += "  left: 0;";
-  html += "  top: 0;";
-  html += "  width: 100%;";
-  html += "  height: 100%;";
-  html += "  overflow: auto;";
-  html += "  background-color: rgba(0,0,0,0.4);";
-  html += "}";
-  html += "";
-  html += "/* Modal centralizado e responsivo */";
-  html += ".modal-content {";
-  html += "  background-color: #fefefe;";
-  html += "  position: relative;";
-  html += "  top: 50%;";
-  html += "  transform: translateY(-50%);";
-  html += "  padding: 20px;";
-  html += "  border: 1px solid #888;";
-  html += "  width: 90vw;";
-  html += "  max-width: 300px;";
-  html += "  text-align: center;";
-  html += "  border-radius: 8px;";
-  html += "  margin: 0 auto;";
-  html += "}";
-  html += "/* Inputs do PIN */";
-  html += ".pin-inputs {";
-  html += "  display: flex;";
-  html += "  justify-content: center;";
-  html += "  gap: 5px;";
-  html += "  margin: 20px 0;";
-  html += "  width: 100%;";
-  html += "}";
-  html += ".pin-inputs input {";
-  html += "  width: 12vw;";
-  html += "  max-width: 45px;";
-  html += "  min-width: 30px;";
-  html += "  height: 45px;";
-  html += "  text-align: center;";
-  html += "  font-size: 16px;";
-  html += "  border: 1px solid #ddd;";
-  html += "  border-radius: 6px;";
-  html += "  -webkit-appearance: none;";
-  html += "  appearance: none;";
-  html += "}";
-  html += ".block-events * { pointer-events: none; }";
-  html += "</style></head>";
-  instance->server.sendContent(html);
-
-  html = "<body>";
-  html += "<h1>ESP-PORTATEC Control</h1>";
-  html += "<p>Dispositivo: " + String(deviceConfig.getDeviceName()) + "</p>";
-
-  // Sensor status display
-  if (deviceConfig.getSensorPin() != DeviceConfig::UNCONFIGURED_PIN) {
-    bool sensorState = digitalRead(deviceConfig.getSensorPin());
-    html += "<div class='status-display " + String(sensorState ? "status-closed" : "status-open") + "'>";
-    html += "Status: " + String(sensorState ? "FECHADO" : "ABERTO");
-    html += "</div>";
-  }
-
-  html += "<div class='button-container'>";
-  html += "<button id='pulseButton' onclick='openPinModal()'>Abrir</button>";
-  html += "</div>";
-
-  // PIN Modal
-  html += "<div id='pinModal' class='modal'>";
-  html += "<div class='modal-content'>";
-  html += "<h2>Digite o PIN</h2>";
-  html += "<div id='pinMessage' style='color: red; margin-bottom: 10px;'></div>";
-  html += "<div class='pin-inputs'>";
-  for (int i = 0; i < 6; i++) {
-    html += "<input type='tel' inputmode='numeric' pattern='[0-9]*' maxlength='1' id='pin" + String(i) + "'>";
-  }
-  html += "</div>";
-  html += "<button id='confirmPinButton' onclick='submitPin()'>Confirmar</button>";
-  html += "</div>";
-  html += "</div>";
-  instance->server.sendContent(html);
-
-  // Chunk 3: JS Functions (openPinModal, submitPin)
-  html = "<script>";
-  html += "function openPinModal() { ";
-  html += "  document.getElementById('pinModal').style.display = 'block'; ";
-  html += "  document.getElementById('pin0').focus(); ";
-  html += "  document.getElementById('pinMessage').textContent = ''; ";
-  html += "}";
-  html += "function submitPin() {";
-  html += "  let pin = '';";
-  html += "  for (let i = 0; i < 6; i++) { pin += document.getElementById('pin' + i).value; }";
-  html += "  pulseGpio(pin);";
-  html += "}";
-  instance->server.sendContent(html);
-
-  // Chunk 4: JS Listeners
-  html = "const pinInputs = document.querySelector('.pin-inputs');";
-  html += "if (pinInputs) {"; // Added safety check
-  html += "  pinInputs.querySelectorAll('input').forEach(input => {";
-  html += "    input.addEventListener('focus', () => {";
-  html += "      setTimeout(() => input.select(), 10);"; // Selects digit on focus
-  html += "    });";
-  html += "  });";
-  html += "pinInputs.addEventListener('input', (e) => {";
-  html += "  const target = e.target;";
-  html += "  target.value = target.value.replace(/[^0-9]/g, '');";
-  html += "  const next = target.nextElementSibling;";
-  html += "  if (target.value && next) { next.focus(); }";
-  html += "});";
-  html += "pinInputs.addEventListener('keydown', (e) => {";
-  html += "  const target = e.target;";
-  html += "  const prev = target.previousElementSibling;";
-  html += "  if (e.key === 'Backspace' && !target.value && prev) { prev.focus(); }";
-  html += "});";
-  html += "pinInputs.addEventListener('paste', (e) => {";
-  html += "  e.preventDefault();";
-  html += "  let paste = (e.clipboardData || window.clipboardData).getData('text');";
-  html += "  paste = paste.replace(/[^0-9]/g, '');";
-  html += "  const inputs = pinInputs.querySelectorAll('input');";
-  html += "  for (let i = 0; i < Math.min(inputs.length, paste.length); i++) { inputs[i].value = paste[i]; }";
-  html += "  if (paste.length > 0) { inputs[Math.min(inputs.length - 1, paste.length - 1)].focus(); }";
-  html += "});";
-  html += "}"; // End safety check
-  instance->server.sendContent(html);
-  
-  // Chunk 5: pulseGpio function
-  html = "function pulseGpio(pin) {";
-  html += "  const button = document.getElementById('confirmPinButton');";
-  html += "  const pinMessage = document.getElementById('pinMessage');";
-  html += "  const pinInputsContainer = document.querySelector('.pin-inputs');"; // Get the container
-  html += "  button.disabled = true;";
-  html += "  button.classList.add('working');";
-  html += "  const originalText = button.textContent;";
-  html += "  button.textContent = 'Validando...';";
-  html += "  fetch('/pulse?pin=' + pin)";
-  html += "    .then(response => {";
-  html += "      if (response.status !== 200) {";
-  html += "        pinMessage.style.color = 'red';";
-  html += "        pinMessage.textContent = 'PIN incorreto!';";
-  html += "        ";
-  html += "        if (pinInputsContainer) {"; // Safety check
-  html += "          pinInputsContainer.classList.add('block-events');"; // Block events temporarily
-  html += "        }";
-  html += "        const inputs = pinInputsContainer.querySelectorAll('input');";
-  html += "        inputs.forEach(input => input.value = '');"; // Clear all inputs
-  html += "        if (inputs.length > 0) {";
-  html += "          inputs[0].focus();"; // Focus first input
-  html += "          inputs[0].select();"; // Select content of first input
-  html += "        }";
-  html += "        setTimeout(() => {";
-  html += "          if (pinInputsContainer) {";
-  html += "            pinInputsContainer.classList.remove('block-events');"; // Re-enable events
-  html += "          }";
-  html += "        }, 50);"; // Short delay for re-enabling events
-  html += "      } else {";
-  html += "        pinMessage.style.color = 'green';";
-  html += "        pinMessage.textContent = 'Sucesso: Comando enviado!';";
-  html += "        setTimeout(() => {";
-  html += "          document.getElementById('pinModal').style.display = 'none';";
-  html += "          for (let i = 0; i < 6; i++) { document.getElementById('pin' + i).value = ''; }";
-  html += "        }, 1000);";
-  html += "      }";
-  html += "      return response.text();";
-  html += "    })";
-  html += "    .then(data => {";
-  html += "      console.log(data);";
-  html += "      button.disabled = false;";
-  html += "      button.classList.remove('working');";
-  html += "      button.textContent = originalText;";
-  html += "    });";
-  html += "}";
-  html += "</script></body></html>";
-  instance->server.sendContent(html);
+void Webserver::handleIndex() {
+  sendHtml("/index.html", [](String html) -> String {
+    html.replace("%DEVICE_NAME%", String(deviceConfig.getDeviceName()));
+    
+    if (deviceConfig.getSensorPin() != DeviceConfig::UNCONFIGURED_PIN) {
+      bool sensorState = digitalRead(deviceConfig.getSensorPin());
+      String statusHtml = "<div class='status-display " + String(sensorState ? "status-closed" : "status-open") + "'>";
+      statusHtml += "Status: " + String(sensorState ? "FECHADO" : "ABERTO");
+      statusHtml += "</div>";
+      html.replace("%SENSOR_STATUS_HTML%", statusHtml);
+    } else {
+       html.replace("%SENSOR_STATUS_HTML%", "");
+    }
+    return html;
+  });
 }
 
 void Webserver::handleInfo() {
-  instance->server.setContentLength(CONTENT_LENGTH_UNKNOWN);
-  instance->server.send(200, "text/html", "");
-
-  String html = "<!DOCTYPE html><html><head>";
-  html += "<meta name='viewport' content='width=device-width, initial-scale=1'><meta charset=\"UTF-8\">";
-  html += "<meta http-equiv='refresh' content='10'>";  // Auto refresh every 10 seconds
-  html += "<title>ESP-PORTATEC Informações</title>";
-  html += "<style>";
-  html += "body { font-family: Arial, sans-serif; margin: 20px; }";
-  html += ".container { max-width: 600px; margin: 0 auto; }";
-  html += ".section { margin: 20px 0; padding: 20px; border: 1px solid #ddd; border-radius: 8px; background-color: #f9f9f9; }";
-  html += "h1 { text-align: center; color: #333; }";
-  html += "h2 { margin-top: 0; color: #4CAF50; border-bottom: 2px solid #4CAF50; padding-bottom: 5px; }";
-  html += ".info-row { display: flex; justify-content: space-between; margin: 10px 0; padding: 8px; background-color: white; border-radius: 4px; }";
-  html += ".info-label { font-weight: bold; color: #555; }";
-  html += ".info-value { color: #333; }";
-  html += ".status-connected { color: #4CAF50; font-weight: bold; }";
-  html += ".status-disconnected { color: #f44336; font-weight: bold; }";
-  html += ".status-syncing { color: #2196F3; font-weight: bold; }";
-  html += ".back-button { display: block; width: 200px; margin: 20px auto; padding: 10px; text-align: center; background-color: #4CAF50; color: white; text-decoration: none; border-radius: 4px; }";
-  html += ".back-button:hover { background-color: #45a049; }";
-  html += ".signal-bar { display: inline-block; width: 100px; height: 20px; background: linear-gradient(90deg, #f44336 0%, #ff9800 50%, #4CAF50 100%); border-radius: 10px; position: relative; }";
-  html += ".signal-indicator { position: absolute; top: 0; left: 0; height: 100%; background-color: rgba(255,255,255,0.8); border-radius: 10px; }";
-  html += "</style></head>";
-  html += "<body>";
-  html += "<div class='container'>";
-  html += "<h1>Informações do Sistema</h1>";
-  instance->server.sendContent(html);
-
-  // Chunk 2: Device Information
-  html = "<div class='section'>";
-  html += "<h2>Informações do Dispositivo</h2>";
-  html += "<div class='info-row'>";
-  html += "<span class='info-label'>Nome do Dispositivo:</span>";
-  html += "<span class='info-value'>" + String(deviceConfig.getDeviceName()) + "</span>";
-  html += "</div>";
-  html += "<div class='info-row'>";
-  html += "<span class='info-label'>Chip ID:</span>";
-  html += "<span class='info-value'>" + String(ESP.getChipId(), HEX) + "</span>";
-  html += "</div>";
-  html += "<div class='info-row'>";
-  html += "<span class='info-label'>Versão do Firmware:</span>";
-  html += "<span class='info-value'>" + String(DeviceConfig::FIRMWARE_VERSION) + "</span>";
-  html += "</div>";
-  html += "<div class='info-row'>";
-  html += "<span class='info-label'>Tempo Ligado:</span>";
-  unsigned long uptime = millis() / 1000;
-  unsigned long days = uptime / 86400;
-  unsigned long hours = (uptime % 86400) / 3600;
-  unsigned long minutes = (uptime % 3600) / 60;
-  unsigned long seconds = uptime % 60;
-  html += "<span class='info-value'>" + String(days) + "d " + String(hours) + "h " + String(minutes) + "m " + String(seconds) + "s</span>";
-  html += "</div>";
-  html += "<div class='info-row'>";
-  html += "<span class='info-label'>Data e Hora Atual:</span>";
-  html += "<span class='info-value'>" + formatUnixTime(systemClock.getUnixTime()) + "</span>";
-  html += "</div>";
-  html += "<div class='info-row'>";
-  html += "<span class='info-label'>Pino Pulso:</span>";
-  html += "<span class='info-value'>GPIO " + String(deviceConfig.getPulsePin()) + "</span>";
-  html += "</div>";
-  html += "<div class='info-row'>";
-  html += "<span class='info-label'>Pino Sensor:</span>";
-  if (deviceConfig.getSensorPin() != DeviceConfig::UNCONFIGURED_PIN) {
-    html += "<span class='info-value'>GPIO " + String(deviceConfig.getSensorPin()) + " (" + (digitalRead(deviceConfig.getSensorPin()) ? "ALTO" : "BAIXO") + ")</span>";
-  } else {
-    html += "<span class='info-value'>N/A</span>";
-  }
-  html += "</div>";
-  html += "</div>";
-  instance->server.sendContent(html);
-
-  // Chunk 3: WiFi Information
-  html = "<div class='section'>";
-  html += "<h2>Informações WiFi</h2>";
-  html += "<div class='info-row'>";
-  html += "<span class='info-label'>Status WiFi:</span>";
-  if (WiFi.status() == WL_CONNECTED) {
-    html += "<span class='info-value status-connected'>Conectado</span>";
-  } else {
-    html += "<span class='info-value status-disconnected'>Desconectado</span>";
-  }
-  html += "</div>";
-
-  if (WiFi.status() == WL_CONNECTED) {
-    html += "<div class='info-row'>";
-    html += "<span class='info-label'>Nome da Rede:</span>";
-    html += "<span class='info-value'>" + WiFi.SSID() + "</span>";
-    html += "</div>";
-    html += "<div class='info-row'>";
-    html += "<span class='info-label'>Endereço IP:</span>";
-    html += "<span class='info-value'>" + WiFi.localIP().toString() + "</span>";
-    html += "</div>";
-    html += "<div class='info-row'>";
-    html += "<span class='info-label'>Gateway:</span>";
-    html += "<span class='info-value'>" + WiFi.gatewayIP().toString() + "</span>";
-    html += "</div>";
-    html += "<div class='info-row'>";
-    html += "<span class='info-label'>DNS:</span>";
-    html += "<span class='info-value'>" + WiFi.dnsIP().toString() + "</span>";
-    html += "</div>";
-    html += "<div class='info-row'>";
-    html += "<span class='info-label'>Potência do Sinal:</span>";
-    int32_t rssi = WiFi.RSSI();
-    int signalPercent = constrain(map(rssi, -100, -30, 0, 100), 0, 100);
-    html += "<span class='info-value'>" + String(rssi) + " dBm (" + String(signalPercent) + "%)";
-    html += "<div class='signal-bar'><div class='signal-indicator' style='width:" + String(100-signalPercent) + "%'></div></div>";
-    html += "</span>";
-    html += "</div>";
-  } else {
-    html += "<div class='info-row'>";
-    html += "<span class='info-label'>Rede Configurada:</span>";
-    html += "<span class='info-value'>" + String(deviceConfig.getWifiSSID()) + "</span>";
-  }
-  html += "</div>";
-  instance->server.sendContent(html);
-
-  // Chunk 4: AP Info, Sync Info and Footer
-  html = "<div class='section'>";
-  html += "<h2>Ponto de Acesso</h2>";
-  html += "<div class='info-row'>";
-  html += "<span class='info-label'>Nome do AP:</span>";
-  html += "<span class='info-value'>" + String(deviceConfig.getDeviceName()) + "</span>";
-  html += "</div>";
-  html += "<div class='info-row'>";
-  html += "<span class='info-label'>IP do AP:</span>";
-  html += "<span class='info-value'>" + WiFi.softAPIP().toString() + "</span>";
-  html += "</div>";
-  html += "<div class='info-row'>";
-  html += "<span class='info-label'>Clientes Conectados:</span>";
-  html += "<span class='info-value'>" + String(WiFi.softAPgetStationNum()) + "</span>";
-  html += "</div>";
-  html += "</div>";
-
-  // Sync Information
-  html += "<div class='section'>";
-  html += "<h2>Informações de Sincronização</h2>";
-  html += "<div class='info-row'>";
-  html += "<span class='info-label'>Status da Conexão:</span>";
-  if (sync.isConnected()) {
-    html += "<span class='info-value status-connected'>Conectado</span>";
-  } else {
-    html += "<span class='info-value status-disconnected'>Desconectado</span>";
-  }
-  html += "</div>";
-  html += "<div class='info-row'>";
-  html += "<span class='info-label'>Status da Sincronização:</span>";
-  if (sync.isSyncing()) {
-    html += "<span class='info-value status-syncing'>Sincronizando</span>";
-  } else if (sync.isConnected()) {
-    html += "<span class='info-value status-disconnected'>Parado</span>";
-  } else {
-    html += "<span class='info-value status-disconnected'>Offline</span>";
-  }
-  html += "</div>";
-  html += "<div class='info-row'>";
-  html += "<span class='info-label'>Última Sincronização:</span>";
-  unsigned long lastSync = sync.getLastSuccessfulSync();
-  if (lastSync > 0) {
-    unsigned long timeSinceSync = (millis() - lastSync) / 1000;
-    if (timeSinceSync < 60) {
-      html += "<span class='info-value'>" + String(timeSinceSync) + " segundos atrás</span>";
-    } else if (timeSinceSync < 3600) {
-      html += "<span class='info-value'>" + String(timeSinceSync / 60) + " minutos atrás</span>";
-    } else if (timeSinceSync < 86400) {
-      html += "<span class='info-value'>" + String(timeSinceSync / 3600) + " horas atrás</span>";
+  sendHtml("/info.html", [](String html) -> String {
+    // Device Info
+    html.replace("%DEVICE_NAME%", String(deviceConfig.getDeviceName()));
+    html.replace("%CHIP_ID%", String(ESP.getChipId(), HEX));
+    html.replace("%FIRMWARE_VERSION%", String(DeviceConfig::FIRMWARE_VERSION));
+    
+    unsigned long uptime = millis() / 1000;
+    unsigned long days = uptime / 86400;
+    unsigned long hours = (uptime % 86400) / 3600;
+    unsigned long minutes = (uptime % 3600) / 60;
+    unsigned long seconds = uptime % 60;
+    html.replace("%UPTIME%", String(days) + "d " + String(hours) + "h " + String(minutes) + "m " + String(seconds) + "s");
+    
+    html.replace("%CURRENT_TIME%", formatUnixTime(systemClock.getUnixTime()));
+    html.replace("%PULSE_PIN%", String(deviceConfig.getPulsePin()));
+    
+    if (deviceConfig.getSensorPin() != DeviceConfig::UNCONFIGURED_PIN) {
+        html.replace("%SENSOR_PIN_INFO%", "GPIO " + String(deviceConfig.getSensorPin()) + " (" + (digitalRead(deviceConfig.getSensorPin()) ? "ALTO" : "BAIXO") + ")");
     } else {
-      html += "<span class='info-value'>" + String(timeSinceSync / 86400) + " dias atrás</span>";
+        html.replace("%SENSOR_PIN_INFO%", "N/A");
     }
-  } else {
-    html += "<span class='info-value status-disconnected'>Nunca sincronizado</span>";
-  }
-  html += "</div>";
-  html += "</div>";
 
-  html += "<a href='/' class='back-button'>← Voltar</a>";
-  html += "</div>";
-  html += "</body></html>";
+    // WiFi Info
+    if (WiFi.status() == WL_CONNECTED) {
+        html.replace("%WIFI_STATUS_CLASS%", "status-connected");
+        html.replace("%WIFI_STATUS_TEXT%", "Conectado");
+        
+        String wifiDetails = "<div class='info-row'><span class='info-label'>Nome da Rede:</span><span class='info-value'>" + WiFi.SSID() + "</span></div>";
+        wifiDetails += "<div class='info-row'><span class='info-label'>Endereço IP:</span><span class='info-value'>" + WiFi.localIP().toString() + "</span></div>";
+        wifiDetails += "<div class='info-row'><span class='info-label'>Gateway:</span><span class='info-value'>" + WiFi.gatewayIP().toString() + "</span></div>";
+        wifiDetails += "<div class='info-row'><span class='info-label'>DNS:</span><span class='info-value'>" + WiFi.dnsIP().toString() + "</span></div>";
+        
+        int32_t rssi = WiFi.RSSI();
+        int signalPercent = constrain(map(rssi, -100, -30, 0, 100), 0, 100);
+        wifiDetails += "<div class='info-row'><span class='info-label'>Potência do Sinal:</span><span class='info-value'>" + String(rssi) + " dBm (" + String(signalPercent) + "%) ";
+        wifiDetails += "<div class='signal-bar'><div class='signal-indicator' style='width:" + String(100-signalPercent) + "%'></div></div></span></div>";
+        
+        html.replace("%WIFI_DETAILS%", wifiDetails);
+    } else {
+        html.replace("%WIFI_STATUS_CLASS%", "status-disconnected");
+        html.replace("%WIFI_STATUS_TEXT%", "Desconectado");
+        html.replace("%WIFI_DETAILS%", "<div class='info-row'><span class='info-label'>Rede Configurada:</span><span class='info-value'>" + String(deviceConfig.getWifiSSID()) + "</span></div>");
+    }
 
-  instance->server.sendContent(html);
+    // AP Info
+    html.replace("%AP_SSID%", String(deviceConfig.getDeviceName()));
+    html.replace("%AP_IP%", WiFi.softAPIP().toString());
+    html.replace("%AP_STATIONS%", String(WiFi.softAPgetStationNum()));
+
+    // Sync Info
+    if (sync.isConnected()) {
+        html.replace("%SYNC_CONNECTION_CLASS%", "status-connected");
+        html.replace("%SYNC_CONNECTION_TEXT%", "Conectado");
+    } else {
+        html.replace("%SYNC_CONNECTION_CLASS%", "status-disconnected");
+        html.replace("%SYNC_CONNECTION_TEXT%", "Desconectado");
+    }
+
+    if (sync.isSyncing()) {
+        html.replace("%SYNC_STATUS_CLASS%", "status-syncing");
+        html.replace("%SYNC_STATUS_TEXT%", "Sincronizando");
+    } else if (sync.isConnected()) {
+        html.replace("%SYNC_STATUS_CLASS%", "status-disconnected");
+        html.replace("%SYNC_STATUS_TEXT%", "Parado");
+    } else {
+        html.replace("%SYNC_STATUS_CLASS%", "status-disconnected");
+        html.replace("%SYNC_STATUS_TEXT%", "Offline");
+    }
+
+    unsigned long lastSync = sync.getLastSuccessfulSync();
+    if (lastSync > 0) {
+        unsigned long timeSinceSync = (millis() - lastSync) / 1000;
+        String timeText;
+        if (timeSinceSync < 60) {
+            timeText = String(timeSinceSync) + " segundos atrás";
+        } else if (timeSinceSync < 3600) {
+            timeText = String(timeSinceSync / 60) + " minutos atrás";
+        } else if (timeSinceSync < 86400) {
+            timeText = String(timeSinceSync / 3600) + " horas atrás";
+        } else {
+            timeText = String(timeSinceSync / 86400) + " dias atrás";
+        }
+        html.replace("%LAST_SYNC_CLASS%", "");
+        html.replace("%LAST_SYNC_TEXT%", timeText);
+    } else {
+        html.replace("%LAST_SYNC_CLASS%", "status-disconnected");
+        html.replace("%LAST_SYNC_TEXT%", "Nunca sincronizado");
+    }
+
+    return html;
+  });
 }
 
 void Webserver::handleClient() {
   server.handleClient();
+}
+
+void Webserver::sendHtml(const String& path, std::function<String(const String&)> processor) {
+  if (!LittleFS.exists(path)) {
+    instance->server.send(404, "text/plain", "File not found: " + path);
+    return;
+  }
+
+  File file = LittleFS.open(path, "r");
+  if (!file) {
+    instance->server.send(500, "text/plain", "Failed to open file: " + path);
+    return;
+  }
+
+  String html = file.readString();
+  file.close();
+
+  if (processor) {
+    html = processor(html);
+  }
+
+  instance->server.send(200, "text/html", html);
 }
 
 String Webserver::formatUnixTime(unsigned long unix_timestamp) {

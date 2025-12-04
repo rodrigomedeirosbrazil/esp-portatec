@@ -71,6 +71,22 @@ ESP-PORTATEC is a robust firmware solution designed for ESP8266 and ESP32 microc
 2. Open a web browser and navigate to `http://192.168.4.1`
 3. Use the web interface to control your device
 
+## Filesystem Management
+
+If you need to clear the device's filesystem, you can use the following PlatformIO commands:
+
+1.  **Erase the flash:** This command will wipe the entire flash memory of the device, including the filesystem.
+
+    ```bash
+    pio run -t erase -e esp01
+    ```
+
+2.  **Upload the filesystem image:** After erasing the flash, you need to upload the new filesystem image, which contains the web interface files.
+
+    ```bash
+    pio run -t uploadfs -e esp01
+    ```
+
 ## Security Features
 
 - Password-protected access point

@@ -1,0 +1,172 @@
+<!DOCTYPE html><html><head>
+<meta name='viewport' content='width=device-width, initial-scale=1'><meta charset="UTF-8">
+<title>ESP-PORTATEC Control</title>
+<style>
+body { font-family: Arial, sans-serif; margin: 20px; text-align: center; }
+button { padding: 10px 20px; font-size: 16px; background-color: #4CAF50; color: white; border: none; border-radius: 4px; cursor: pointer; margin: 5px; }
+button:hover { background-color: #45a049; }
+button:disabled { background-color: #cccccc; cursor: not-allowed; }
+.working { background-color: #ff9800 !important; }
+.button-container { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; margin: 20px 0; }
+.status-display { font-size: 18px; margin: 20px auto; padding: 15px; border-radius: 8px; max-width: 300px; width: 100%; }
+.status-closed { background-color: #f44336; color: white; }
+.status-open { background-color: #4CAF50; color: white; }
+.modal {
+  display: none;
+  position: fixed;
+  z-index: 1;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  overflow: auto;
+  background-color: rgba(0,0,0,0.4);
+}
+/* Modal centralizado e responsivo */
+.modal-content {
+  background-color: #fefefe;
+  position: relative;
+  top: 50%;
+  transform: translateY(-50%);
+  padding: 20px;
+  border: 1px solid #888;
+  width: 90vw;
+  max-width: 300px;
+  text-align: center;
+  border-radius: 8px;
+  margin: 0 auto;
+}
+/* Inputs do PIN */
+.pin-inputs {
+  display: flex;
+  justify-content: center;
+  gap: 5px;
+  margin: 20px 0;
+  width: 100%;
+}
+.pin-inputs input {
+  width: 12vw;
+  max-width: 45px;
+  min-width: 30px;
+  height: 45px;
+  text-align: center;
+  font-size: 16px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  -webkit-appearance: none;
+  appearance: none;
+}
+.block-events * { pointer-events: none; }
+</style></head>
+<body>
+<h1>ESP-PORTATEC Control</h1>
+<p>Dispositivo: %DEVICE_NAME%</p>
+
+%SENSOR_STATUS_HTML%
+
+<div class='button-container'>
+<button id='pulseButton' onclick='openPinModal()'>Abrir</button>
+</div>
+
+<div id='pinModal' class='modal'>
+<div class='modal-content'>
+<h2>Digite o PIN</h2>
+<div id='pinMessage' style='color: red; margin-bottom: 10px;'></div>
+<div class='pin-inputs'>
+<input type='tel' inputmode='numeric' pattern='[0-9]*' maxlength='1' id='pin0'>
+<input type='tel' inputmode='numeric' pattern='[0-9]*' maxlength='1' id='pin1'>
+<input type='tel' inputmode='numeric' pattern='[0-9]*' maxlength='1' id='pin2'>
+<input type='tel' inputmode='numeric' pattern='[0-9]*' maxlength='1' id='pin3'>
+<input type='tel' inputmode='numeric' pattern='[0-9]*' maxlength='1' id='pin4'>
+<input type='tel' inputmode='numeric' pattern='[0-9]*' maxlength='1' id='pin5'>
+</div>
+<button id='confirmPinButton' onclick='submitPin()'>Confirmar</button>
+</div>
+</div>
+
+<script>
+function openPinModal() {
+  document.getElementById('pinModal').style.display = 'block';
+  document.getElementById('pin0').focus();
+  document.getElementById('pinMessage').textContent = '';
+}
+function submitPin() {
+  let pin = '';
+  for (let i = 0; i < 6; i++) { pin += document.getElementById('pin' + i).value; }
+  pulseGpio(pin);
+}
+
+const pinInputs = document.querySelector('.pin-inputs');
+if (pinInputs) {
+  pinInputs.querySelectorAll('input').forEach(input => {
+    input.addEventListener('focus', () => {
+      setTimeout(() => input.select(), 10);
+    });
+  });
+  pinInputs.addEventListener('input', (e) => {
+    const target = e.target;
+    target.value = target.value.replace(/[^0-9]/g, '');
+    const next = target.nextElementSibling;
+    if (target.value && next) { next.focus(); }
+  });
+  pinInputs.addEventListener('keydown', (e) => {
+    const target = e.target;
+    const prev = target.previousElementSibling;
+    if (e.key === 'Backspace' && !target.value && prev) { prev.focus(); }
+  });
+  pinInputs.addEventListener('paste', (e) => {
+    e.preventDefault();
+    let paste = (e.clipboardData || window.clipboardData).getData('text');
+    paste = paste.replace(/[^0-9]/g, '');
+    const inputs = pinInputs.querySelectorAll('input');
+    for (let i = 0; i < Math.min(inputs.length, paste.length); i++) { inputs[i].value = paste[i]; }
+    if (paste.length > 0) { inputs[Math.min(inputs.length - 1, paste.length - 1)].focus(); }
+  });
+}
+
+function pulseGpio(pin) {
+  const button = document.getElementById('confirmPinButton');
+  const pinMessage = document.getElementById('pinMessage');
+  const pinInputsContainer = document.querySelector('.pin-inputs');
+  button.disabled = true;
+  button.classList.add('working');
+  const originalText = button.textContent;
+  button.textContent = 'Validando...';
+  fetch('/pulse?pin=' + pin)
+    .then(response => {
+      if (response.status !== 200) {
+        pinMessage.style.color = 'red';
+        pinMessage.textContent = 'PIN incorreto!';
+        
+        if (pinInputsContainer) {
+          pinInputsContainer.classList.add('block-events');
+        }
+        const inputs = pinInputsContainer.querySelectorAll('input');
+        inputs.forEach(input => input.value = '');
+        if (inputs.length > 0) {
+          inputs[0].focus();
+          inputs[0].select();
+        }
+        setTimeout(() => {
+          if (pinInputsContainer) {
+            pinInputsContainer.classList.remove('block-events');
+          }
+        }, 50);
+      } else {
+        pinMessage.style.color = 'green';
+        pinMessage.textContent = 'Sucesso: Comando enviado!';
+        setTimeout(() => {
+          document.getElementById('pinModal').style.display = 'none';
+          for (let i = 0; i < 6; i++) { document.getElementById('pin' + i).value = ''; }
+        }, 1000);
+      }
+      return response.text();
+    })
+    .then(data => {
+      console.log(data);
+      button.disabled = false;
+      button.classList.remove('working');
+      button.textContent = originalText;
+    });
+}
+</script></body></html>
