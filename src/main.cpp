@@ -21,6 +21,7 @@ Sync sync;
 Webserver webserver;
 Sensor sensor;
 SystemClock systemClock; // Instantiate global Clock instance
+AccessManager accessManager;
 
 unsigned long lastCheck = 0;
 unsigned long lastSyncCheck = 0;
@@ -72,6 +73,7 @@ void loop() {
 
   sync.handle();
   systemClock.loop();
+  accessManager.cleanup();
 
   if (sensor.hasChanged()) {
     if (sync.isConnected()) {
