@@ -21,7 +21,7 @@ class Sync {
     void sendDeviceStatus();
     void handlePusherMessage(String message);
     void pulse();
-    void sendCommandAck(String commandName, uint8_t gpio);
+    void sendCommandAck(String commandName, uint8_t gpio = 255);
     void updateFirmware();
     void sendDiagnosticInfo(String event);
     uint32_t optimizeMemoryForOTA();

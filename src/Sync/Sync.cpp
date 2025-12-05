@@ -297,7 +297,7 @@ void Sync::pulse() {
   DEBUG_PRINTLN("[Device] Pulse completed");
 }
 
-void Sync::sendCommandAck(String commandName, uint8_t gpio = 255) {
+void Sync::sendCommandAck(String commandName, uint8_t gpio) {
   DEBUG_PRINT("[Pusher] Sending command ack for command: ");
   DEBUG_PRINTLN(commandName);
 
