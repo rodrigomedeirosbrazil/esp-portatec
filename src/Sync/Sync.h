@@ -25,6 +25,7 @@ class Sync {
     void updateFirmware();
     void sendDiagnosticInfo(String event);
     uint32_t optimizeMemoryForOTA();
+    void processPinAction(JsonVariant data);
 
   public:
     Sync();
@@ -34,6 +35,7 @@ class Sync {
     bool isSyncing();
     unsigned long getLastSuccessfulSync();
     void sendSensorStatus(int value);
+    void sendPinUsage(int pinId);
 };
 
 #endif
