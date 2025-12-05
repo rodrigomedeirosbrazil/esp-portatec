@@ -21,10 +21,11 @@ class Sync {
     void sendDeviceStatus();
     void handlePusherMessage(String message);
     void pulse();
-    void sendCommandAck(String commandName, uint8_t gpio);
+    void sendCommandAck(String commandName, uint8_t gpio = 255);
     void updateFirmware();
     void sendDiagnosticInfo(String event);
     uint32_t optimizeMemoryForOTA();
+    void processPinAction(JsonVariant data);
 
   public:
     Sync();
@@ -34,6 +35,7 @@ class Sync {
     bool isSyncing();
     unsigned long getLastSuccessfulSync();
     void sendSensorStatus(int value);
+    void sendPinUsage(int pinId);
 };
 
 #endif

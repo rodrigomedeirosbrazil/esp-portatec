@@ -105,13 +105,21 @@ void Webserver::handlePulse() {
   if (instance->server.hasArg("pin")) {
     String pin = instance->server.arg("pin");
     pin.trim(); // Remove any accidental whitespace
-    if (pin == deviceConfig.getPin()) {
-      uint8_t pin = deviceConfig.getPulsePin();
+    
+    int authorizedId = accessManager.validate(pin);
+
+    if (authorizedId != 0) {
+      uint8_t pulsePin = deviceConfig.getPulsePin();
       bool inverted = deviceConfig.getPulseInverted();
-      digitalWrite(pin, inverted ? LOW : HIGH);
+      digitalWrite(pulsePin, inverted ? LOW : HIGH);
       delay(500);
-      digitalWrite(pin, inverted ? HIGH : LOW);
-      instance->server.send(200, "text/plain", "GPIO " + String(pin) + " toggled");
+      digitalWrite(pulsePin, inverted ? HIGH : LOW);
+
+      if (authorizedId > 0) {
+        sync.sendPinUsage(authorizedId);
+      }
+
+      instance->server.send(200, "text/plain", "GPIO " + String(pulsePin) + " toggled");
     } else {
       delay(3000); // Add 3-second delay for incorrect PIN
       instance->server.send(401, "application/json", "{\"success\":false,\"message\":\"PIN incorreto!\"}");

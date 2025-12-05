@@ -6,6 +6,7 @@
 
 #include "Sync.h"
 #include "../globals.h"
+#include "../AccessManager/AccessManager.h"
 
 Sync::Sync() {
   lastPing = 0;
@@ -193,6 +194,24 @@ void Sync::handlePusherMessage(String message) {
     return;
   }
 
+  if (event == "access-pin") {
+    DEBUG_PRINTLN("[Pusher] Access PIN command received");
+    
+    JsonVariant data = doc["data"];
+    if (data.is<JsonArray>()) {
+        JsonArray arr = data.as<JsonArray>();
+        for (JsonVariant v : arr) {
+            processPinAction(v);
+        }
+    } else {
+        processPinAction(data);
+    }
+    
+    sendCommandAck("access-pin");
+    lastSuccessfulSync = millis();
+    return;
+  }
+
   if (event == "update-firmware") {
     DEBUG_PRINTLN("[Pusher] Firmware update command received");
     updateFirmware();
@@ -278,7 +297,7 @@ void Sync::pulse() {
   DEBUG_PRINTLN("[Device] Pulse completed");
 }
 
-void Sync::sendCommandAck(String commandName, uint8_t gpio = 255) {
+void Sync::sendCommandAck(String commandName, uint8_t gpio) {
   DEBUG_PRINT("[Pusher] Sending command ack for command: ");
   DEBUG_PRINTLN(commandName);
 
@@ -456,6 +475,37 @@ void Sync::sendDiagnosticInfo(String event) {
   serializeJson(doc, message);
 
   DEBUG_PRINT("[Pusher] Sending diagnostic message: ");
+  DEBUG_PRINTLN(message);
+
+  webSocket.sendTXT(message);
+}
+
+void Sync::processPinAction(JsonVariant data) {
+  String action = data["action"];
+  int id = data["id"];
+  String code = data["code"];
+  unsigned long start = data["start"];
+  unsigned long end = data["end"];
+
+  accessManager.handlePinAction(action, id, code, start, end);
+}
+
+void Sync::sendPinUsage(int pinId) {
+  DEBUG_PRINT("[Pusher] Sending pin usage for ID: ");
+  DEBUG_PRINTLN(pinId);
+
+  DynamicJsonDocument doc(256);
+  doc["event"] = "client-pin-usage";
+  doc["channel"] = channelName;
+
+  JsonObject data = doc.createNestedObject("data");
+  data["pin_id"] = pinId;
+  data["timestamp"] = systemClock.getUnixTime();
+
+  String message;
+  serializeJson(doc, message);
+
+  DEBUG_PRINT("[Pusher] Sending pin usage message: ");
   DEBUG_PRINTLN(message);
 
   webSocket.sendTXT(message);

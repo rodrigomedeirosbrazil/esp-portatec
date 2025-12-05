@@ -12,11 +12,13 @@
 #include "Sensor/Sensor.h"
 #include "Sync/Sync.h"
 #include "Webserver/Webserver.h"
+#include "AccessManager/AccessManager.h"
 
 class DeviceConfig;
 class Sensor;
 class Sync;
 class Webserver;
+class AccessManager;
 
 extern IPAddress myIP;
 extern String API_KEY;
@@ -26,6 +28,7 @@ extern Sensor sensor;
 extern Sync sync;
 extern Webserver webserver;
 extern SystemClock systemClock; // Declare global Clock instance
+extern AccessManager accessManager;
 
 // Debug helper macros
 #ifdef DEBUG
