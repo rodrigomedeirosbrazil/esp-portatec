@@ -1,30 +1,34 @@
 # ESP-PORTATEC
 
-ESP-PORTATEC is a robust firmware solution designed for ESP8266 and ESP32 microcontrollers, specifically tailored for access control systems for doors and gates. The system features a fallback mechanism that creates a local access point when internet connectivity is unavailable, ensuring reliable operation even in offline scenarios.
+ESP-PORTATEC is a robust firmware solution designed for ESP8266 microcontrollers (WeMos D1 Mini compatible), specifically tailored for access control systems for doors and gates. The system features a persistent WebSocket connection for real-time cloud control, time-bound temporary access PINs, and a fallback mechanism for local control when internet connectivity is unavailable.
 
 ## Features
 
 - **Dual-Mode Operation**
-  - Primary mode: Cloud-based control through PortaTEC platform
-  - Fallback mode: Local access point for direct control when internet is unavailable
+  - **Online Mode:** Persistent WebSocket connection to the PortaTEC platform for real-time commands and status updates.
+  - **Offline/AP Mode:** Local access point for direct control and configuration when internet is unavailable.
+
+- **Advanced Access Control**
+  - **Master PIN:** Permanent PIN stored in the device's EEPROM.
+  - **Temporary PINs:** Support for time-bound access codes received via WebSocket. The device validates these PINs locally based on start/end timestamps, ensuring access works even if the connection drops temporarily.
+  - **Usage Logging:** Real-time notification sent to the server when a valid PIN is used.
+
+- **Real-time Monitoring & Sync**
+  - **WebSocket Sync:** Listens for commands (`pulse`, `access-pin`, `update-firmware`) and pushes status updates.
+  - **Sensor Monitoring:** Detects and reports gate state (Open/Closed) using a magnetic sensor (Hall effect or Reed switch).
+  - **OTA Updates:** Supports remote firmware updates triggered via WebSocket commands.
 
 - **Easy Configuration**
-  - Web-based configuration interface
-  - Customizable device name
-  - Configurable GPIO pins for pulse control
-  - Secure password protection
-
-- **User-Friendly Interface**
-  - Responsive web interface
-  - Simple one-click operation
-  - Visual feedback for actions
-  - Mobile-friendly design
+  - Captive portal for WiFi and device setup.
+  - Configurable GPIO pins for relay (pulse) and sensor.
+  - Detailed device diagnostics page (`/info`).
 
 ## Hardware Requirements
 
-- ESP8266 or ESP32 microcontroller
-- Relay module or direct connection to door/gate control system
-- Power supply (5V or 3.3V depending on your setup)
+- ESP8266 microcontroller (e.g., WeMos D1 Mini)
+- Relay module (for door/gate control)
+- Magnetic sensor (Reed switch) for state monitoring
+- Power supply (5V via USB or external source)
 
 ## Installation
 
@@ -33,65 +37,71 @@ ESP-PORTATEC is a robust firmware solution designed for ESP8266 and ESP32 microc
    git clone https://github.com/rodrigomedeirosbrazil/esp-portatec.git
    ```
 
-2. Open the project in Arduino IDE or PlatformIO
+2. Open the project in **PlatformIO** (recommended) or Arduino IDE.
 
-3. Install required dependencies:
-   - ESP8266WiFi
-   - ESP8266WebServer
-   - DNSServer
-   - EEPROM
+3. Build and Upload:
+   Using PlatformIO CLI:
+   ```bash
+   # Build
+   pio run
 
-4. Configure your device:
-   - Set your device name
-   - Set your WiFi password
-   - Configure the pulse pin according to your hardware setup
+   # Upload Firmware
+   pio run -t upload
 
-5. Upload the firmware to your ESP device
+   # Upload Filesystem (HTML/CSS/JS)
+   pio run -t uploadfs
+   ```
 
-## First-Time Setup
+## Configuration
 
-1. Power on your ESP device
-2. Connect to the ESP-PORTATEC access point (default name: "ESP-PORTATEC")
-3. Open a web browser and navigate to `http://192.168.4.1`
-4. Configure your device settings:
-   - Set a device name
-   - Set a secure password
-   - Configure the pulse pin number
-5. Save the configuration
+### First-Time Setup
+1. Power on your ESP device.
+2. Connect to the WiFi Access Point named **"ESP-PORTATEC"** (or similar).
+3. A captive portal should open automatically. If not, navigate to `http://192.168.4.1`.
+4. Configure:
+   - **Device Name**: Identifier for the device.
+   - **WiFi Credentials**: SSID and Password for internet connectivity.
+   - **Master PIN**: The permanent access code.
+   - **GPIO Settings**: Pins for the relay (Pulse) and sensor.
+5. Save and Restart.
 
-## Usage
+### Web Interface Endpoints
+- `/`: Main control interface (requires auth/configuration).
+- `/config`: Configuration page.
+- `/info`: System status, uptime, and diagnostic information.
+- `/pulse?pin=YOUR_PIN`: API endpoint to trigger the relay. Accepts Master PIN or valid Temporary PINs.
 
-### Normal Operation (Internet Available)
-- Control your device through the PortaTEC platform
-- Access your device remotely
-- Monitor device status
+## WebSocket Protocol
 
-### Fallback Mode (No Internet)
-1. Connect to the ESP-PORTATEC access point
-2. Open a web browser and navigate to `http://192.168.4.1`
-3. Use the web interface to control your device
+The device connects to a Pusher-compatible WebSocket server.
+
+- **Incoming Events (Server -> Device):**
+  - `pulse`: Triggers the relay immediately.
+  - `access-pin`: Adds/Updates/Deletes temporary PINs.
+    ```json
+    { "action": "create", "id": 101, "code": "1234", "start": 1700000000, "end": 1700003600 }
+    ```
+  - `update-firmware`: Initiates an OTA update.
+
+- **Outgoing Events (Device -> Server):**
+  - `client-device-status`: Heartbeat with RSSI, uptime, etc.
+  - `client-sensor-status`: Reports gate open/close state changes.
+  - `client-pin-usage`: Reports when a specific temporary PIN ID is used.
+  - `client-command-ack`: Acknowledges received commands.
 
 ## Filesystem Management
 
-If you need to clear the device's filesystem, you can use the following PlatformIO commands:
+The web interface files (`index.html`, `config.html`, etc.) are stored in the LittleFS filesystem.
 
-1.  **Erase the flash:** This command will wipe the entire flash memory of the device, including the filesystem.
-
+1.  **Erase Flash (Factory Reset):**
     ```bash
     pio run -t erase -e esp01
     ```
 
-2.  **Upload the filesystem image:** After erasing the flash, you need to upload the new filesystem image, which contains the web interface files.
-
+2.  **Upload Filesystem:**
     ```bash
     pio run -t uploadfs -e esp01
     ```
-
-## Security Features
-
-- Password-protected access point
-- Secure configuration storage
-- Protected configuration interface
 
 ## Contributing
 
@@ -100,13 +110,3 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 ## License
 
 This project is licensed under the MIT License - see the LICENSE file for details.
-
-## Support
-
-For support, please open an issue in the GitHub repository or contact the PortaTEC support team.
-
-## Acknowledgments
-
-- ESP8266/ESP32 community
-- Arduino community
-- All contributors to this project
