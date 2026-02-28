@@ -95,7 +95,7 @@ flowchart LR
 - **`src/AccessManager/AccessManager.cpp`:** Se for necessário expor o código por id (para evento), ou manter apenas o fluxo "código + result" vindo do Webserver.
 - **`src/globals.h` / `globals.cpp`:** Remover ou reutilizar `API_KEY`; remover configuração MQTT de constantes — passar a usar DeviceConfig/EEPROM.
 - **`platformio.ini`:** Trocar dependência `WebSockets` por uma lib MQTT para ESP8266 (ex.: `knolleary/PubSubClient` ou `256dpi/arduino-mqtt`).
-- **`DeviceConfig`:** Incluir campos para MQTT (host, port, user, password) gravados em EEPROM junto com WiFi, para permitir configuração por dispositivo sem recompilação.
+- **`DeviceConfig`:** Migrar armazenamento para **formato JSON na EEPROM** (em vez de struct binário). Incluir campos para MQTT (host, port, user, password) junto com WiFi. JSON evita problemas de versão de configuração ao adicionar novos campos: leitura tolerante a campos ausentes (defaults) e estrutura flexível.
 
 ---
 
@@ -103,13 +103,14 @@ flowchart LR
 
 - **Biblioteca MQTT:** PubSubClient é comum no ESP8266; verificar se o broker usado pelo backend suporta (porta 1883, MQTT 3.1). Config do backend em `config/mqtt-client.php` e variáveis de ambiente definem o broker; o ESP usa host/porta do DeviceConfig.
 - **Client ID:** Cada dispositivo deve ter client_id único (ex.: `esp-{chipId}`) para evitar conflitos; gerado dinamicamente no código.
-- **Credenciais MQTT:** Host, port, user e password armazenados em **DeviceConfig/EEPROM** (novos campos na struct `Config`), permitindo configuração por dispositivo sem recompilação. Incrementar `CONFIG_VERSION` ao adicionar os campos.
+- **Credenciais MQTT:** Host, port, user e password armazenados em **DeviceConfig/EEPROM**.
+- **Formato JSON na EEPROM:** Gravar configuração em JSON em vez de struct binário. Facilita evolução: novos campos (ex.: MQTT) são adicionados sem quebrar dispositivos já instalados; leitura pode usar defaults para campos ausentes. O projeto já usa ArduinoJson; adaptar `loadConfig`/`saveConfig` para serializar/deserializar JSON.
 
 ---
 
 ## Ordem sugerida de implementação
 
-1. Adicionar lib MQTT ao projeto e configuração (host, port, client_id) em DeviceConfig ou globals.
+1. Migrar DeviceConfig para formato JSON na EEPROM (opcional: fazer antes ou em paralelo); adicionar lib MQTT e campos de configuração (host, port, user, password) no JSON.
 2. Criar módulo/camada de conexão MQTT (connect, loop, reconnect) e substituir o uso de WebSocket em `Sync` pela conexão MQTT.
 3. Implementar subscribe nos tópicos `device/{chipId}/command` e `device/{chipId}/access-codes/sync` e tratar mensagens (pulse/comando genérico, sync_access_codes, update_firmware).
 4. Implementar parsing de access_codes (usar `start_unix`/`end_unix` diretamente) e chamadas ao AccessManager (create/update/delete por código ou índice).
@@ -130,5 +131,6 @@ flowchart LR
 | **Diagnostic** | Ignorar por enquanto (sem implementação na primeira fase) |
 | **Formato de datas (access_codes)** | Usar `start_unix`/`end_unix` para facilitar no dispositivo |
 | **Credenciais MQTT** | Guardar em DeviceConfig/EEPROM (host, port, user, password) |
+| **Formato de config na EEPROM** | JSON em vez de struct binário — evita problemas de versão ao adicionar campos |
 
 Com essas definições, o plano pode ser detalhado em tarefas por arquivo e por PR.
