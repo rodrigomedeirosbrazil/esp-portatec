@@ -35,9 +35,14 @@ void Webserver::handleConfig() {
     html.replace("%PULSE_PIN%", String(deviceConfig.getPulsePin()));
     html.replace("%PIN%", String(deviceConfig.getPin()));
     html.replace("%PULSE_INVERTED_CHECK%", deviceConfig.getPulseInverted() ? " checked" : "");
+    html.replace("%PULSE_INVERTED_CHECKED%", deviceConfig.getPulseInverted() ? " checked" : "");
     html.replace("%SENSOR_PIN%", deviceConfig.getSensorPin() == DeviceConfig::UNCONFIGURED_PIN ? "" : String(deviceConfig.getSensorPin()));
     html.replace("%WIFI_SSID%", String(deviceConfig.getWifiSSID()));
     html.replace("%WIFI_PASS%", String(deviceConfig.getWifiNetworkPass()));
+    html.replace("%MQTT_HOST%", String(deviceConfig.getMqttHost()));
+    html.replace("%MQTT_PORT%", String(deviceConfig.getMqttPort()));
+    html.replace("%MQTT_USER%", String(deviceConfig.getMqttUser()));
+    html.replace("%MQTT_PASS%", String(deviceConfig.getMqttPassword()));
     return html;
   });
 }
@@ -47,9 +52,6 @@ void Webserver::handleSaveConfig() {
     instance->server.hasArg("devicename")
     && instance->server.hasArg("password")
     && instance->server.hasArg("pulsepin")
-    && instance->server.hasArg("sensorpin")
-    && instance->server.hasArg("wifissid")
-    && instance->server.hasArg("wifipass")
     && instance->server.hasArg("pin")
   ) {
     String deviceName = instance->server.arg("devicename");
@@ -83,6 +85,26 @@ void Webserver::handleSaveConfig() {
       if (wifiSSID.length() > 0) {
         deviceConfig.setWifiSSID(wifiSSID.c_str());
         deviceConfig.setWifiNetworkPass(wifiPass.c_str());
+      }
+
+      // Set MQTT configuration if provided
+      if (instance->server.hasArg("mqtthost")) {
+        String mqttHost = instance->server.arg("mqtthost");
+        if (mqttHost.length() > 0) {
+          deviceConfig.setMqttHost(mqttHost.c_str());
+        }
+      }
+      if (instance->server.hasArg("mqttport")) {
+        String mqttPortStr = instance->server.arg("mqttport");
+        if (mqttPortStr.length() > 0) {
+          deviceConfig.setMqttPort((uint16_t)mqttPortStr.toInt());
+        }
+      }
+      if (instance->server.hasArg("mqttuser")) {
+        deviceConfig.setMqttUser(instance->server.arg("mqttuser").c_str());
+      }
+      if (instance->server.hasArg("mqttpass")) {
+        deviceConfig.setMqttPassword(instance->server.arg("mqttpass").c_str());
       }
 
       deviceConfig.saveConfig();

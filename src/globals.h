@@ -21,7 +21,6 @@ class Webserver;
 class AccessManager;
 
 extern IPAddress myIP;
-extern String API_KEY;
 
 extern DeviceConfig deviceConfig;
 extern Sensor sensor;

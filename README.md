@@ -1,22 +1,22 @@
 # ESP-PORTATEC
 
-ESP-PORTATEC is a robust firmware solution designed for ESP8266 microcontrollers (WeMos D1 Mini compatible), specifically tailored for access control systems for doors and gates. The system features a persistent WebSocket connection for real-time cloud control, time-bound temporary access PINs, and a fallback mechanism for local control when internet connectivity is unavailable.
+ESP-PORTATEC is a robust firmware solution designed for ESP8266 microcontrollers (WeMos D1 Mini compatible), specifically tailored for access control systems for doors and gates. The system features MQTT connectivity for real-time cloud control, time-bound temporary access PINs, and a fallback mechanism for local control when internet connectivity is unavailable.
 
 ## Features
 
 - **Dual-Mode Operation**
-  - **Online Mode:** Persistent WebSocket connection to the PortaTEC platform for real-time commands and status updates.
+  - **Online Mode:** MQTT connection to the PortaTEC broker for real-time commands and status updates.
   - **Offline/AP Mode:** Local access point for direct control and configuration when internet is unavailable.
 
 - **Advanced Access Control**
   - **Master PIN:** Permanent PIN stored in the device's EEPROM.
-  - **Temporary PINs:** Support for time-bound access codes received via WebSocket. The device validates these PINs locally based on start/end timestamps, ensuring access works even if the connection drops temporarily.
-  - **Usage Logging:** Real-time notification sent to the server when a valid PIN is used.
+  - **Temporary PINs:** Support for time-bound access codes received via MQTT. The device validates these PINs locally based on start/end timestamps, ensuring access works even if the connection drops temporarily.
+  - **Access Events:** Real-time notification (code + result: valid/invalid) sent to the broker when a PIN is used.
 
 - **Real-time Monitoring & Sync**
-  - **WebSocket Sync:** Listens for commands (`pulse`, `access-pin`, `update-firmware`) and pushes status updates.
+  - **MQTT Sync:** Subscribes to `device/{chipId}/command` and `device/{chipId}/access-codes/sync`; publishes status, ack, and events.
   - **Sensor Monitoring:** Detects and reports gate state (Open/Closed) using a magnetic sensor (Hall effect or Reed switch).
-  - **OTA Updates:** Supports remote firmware updates triggered via WebSocket commands.
+  - **OTA Updates:** Supports remote firmware updates triggered via MQTT command (`action: "update_firmware"`).
 
 - **Easy Configuration**
   - Captive portal for WiFi and device setup.
@@ -63,6 +63,7 @@ ESP-PORTATEC is a robust firmware solution designed for ESP8266 microcontrollers
    - **WiFi Credentials**: SSID and Password for internet connectivity.
    - **Master PIN**: The permanent access code.
    - **GPIO Settings**: Pins for the relay (Pulse) and sensor.
+   - **MQTT**: Host, port (default 1883), user and password for the MQTT broker (stored in EEPROM).
 5. Save and Restart.
 
 ### Web Interface Endpoints
@@ -71,23 +72,24 @@ ESP-PORTATEC is a robust firmware solution designed for ESP8266 microcontrollers
 - `/info`: System status, uptime, and diagnostic information.
 - `/pulse?pin=YOUR_PIN`: API endpoint to trigger the relay. Accepts Master PIN or valid Temporary PINs.
 
-## WebSocket Protocol
+## MQTT Protocol
 
-The device connects to a Pusher-compatible WebSocket server.
+The device connects to an MQTT broker (configurable via DeviceConfig).
 
-- **Incoming Events (Server -> Device):**
-  - `pulse`: Triggers the relay immediately.
-  - `access-pin`: Adds/Updates/Deletes temporary PINs.
+- **Subscribed Topics (Broker -> Device):**
+  - `device/{chipId}/command`: Commands with `action` (`pulse`, `toggle`, `update_firmware`).
+  - `device/{chipId}/access-codes/sync`: Full sync of access codes.
     ```json
-    { "action": "create", "id": 101, "code": "1234", "start": 1700000000, "end": 1700003600 }
+    { "action": "sync_access_codes", "default_pin": "...", "access_codes": [
+      { "pin": "1234", "start_unix": 1700000000, "end_unix": 1700003600 }
+    ]}
     ```
-  - `update-firmware`: Initiates an OTA update.
 
-- **Outgoing Events (Device -> Server):**
-  - `client-device-status`: Heartbeat with RSSI, uptime, etc.
-  - `client-sensor-status`: Reports gate open/close state changes.
-  - `client-pin-usage`: Reports when a specific temporary PIN ID is used.
-  - `client-command-ack`: Acknowledges received commands.
+- **Published Topics (Device -> Broker):**
+  - `device/{chipId}/status`: Heartbeat and sensor status (RSSI, uptime, sensor_value).
+  - `device/{chipId}/ack`: Command acknowledgments.
+  - `device/{chipId}/event`: Access events with `pin` (code used), `result` (valid/invalid), `timestamp_device`.
+  - `device/{chipId}/access-codes/ack`: Confirmation of access codes sync.
 
 ## Filesystem Management
 
