@@ -15,6 +15,7 @@
 
 DNSServer dnsServer;
 WiFiClient client;
+IPAddress myIP;
 
 DeviceConfig deviceConfig;
 Sync sync;
