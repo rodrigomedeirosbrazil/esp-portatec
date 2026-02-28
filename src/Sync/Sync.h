@@ -27,9 +27,9 @@ class Sync {
     void sendDeviceStatus();
     void handleCommand(JsonObject data);
     void handleAccessCodesSync(JsonObject data);
-    void pulse();
-    void sendCommandAck(String action, uint8_t gpio = 255);
-    void updateFirmware();
+    void pulse(const char* commandId);
+    void sendCommandAck(String action, uint8_t gpio, const char* commandId);
+    void updateFirmware(const char* commandId);
     uint32_t optimizeMemoryForOTA();
     bool reconnect();
 

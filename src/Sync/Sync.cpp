@@ -139,14 +139,17 @@ void Sync::handleCommand(JsonObject data) {
   const char* action = data["action"].as<const char*>();
   if (!action) return;
 
+  const char* cmdId = data["command_id"].as<const char*>();
+  String commandId = (cmdId && strlen(cmdId) > 0) ? String(cmdId) : "local";
+
   lastSuccessfulSync = millis();
 
   if (strcmp(action, "pulse") == 0 || strcmp(action, "toggle") == 0) {
-    pulse();
+    pulse(commandId.c_str());
   } else if (strcmp(action, "update_firmware") == 0) {
-    updateFirmware();
+    updateFirmware(commandId.c_str());
   } else {
-    sendCommandAck(String(action));
+    sendCommandAck(String(action), 255, commandId.c_str());
   }
 }
 
@@ -170,7 +173,7 @@ void Sync::handleAccessCodesSync(JsonObject data) {
   mqttClient.publish(topicAccessCodesAck.c_str(), ackMsg.c_str());
 }
 
-void Sync::pulse() {
+void Sync::pulse(const char* commandId) {
   uint8_t pin = deviceConfig.getPulsePin();
   bool inverted = deviceConfig.getPulseInverted();
 
@@ -179,17 +182,17 @@ void Sync::pulse() {
   digitalWrite(pin, inverted ? LOW : HIGH);
   delay(500);
   digitalWrite(pin, inverted ? HIGH : LOW);
-  sendCommandAck("pulse", pin);
+  sendCommandAck("pulse", pin, commandId);
   DEBUG_PRINTLN("[Device] Pulse completed");
 }
 
-void Sync::sendCommandAck(String action, uint8_t gpio) {
+void Sync::sendCommandAck(String action, uint8_t gpio, const char* commandId) {
   DynamicJsonDocument doc(256);
   doc["action"] = action;
   if (gpio != 255) {
     doc["pin"] = gpio;
   }
-  doc["command_id"] = "local";
+  doc["command_id"] = commandId ? commandId : "local";
 
   String message;
   serializeJson(doc, message);
@@ -207,6 +210,9 @@ void Sync::sendDeviceStatus() {
   doc["pulse-pin"] = deviceConfig.getPulsePin();
   doc["sensor-pin"] = deviceConfig.getSensorPin();
   doc["pulse-inverted"] = deviceConfig.getPulseInverted();
+  if (deviceConfig.getSensorPin() != DeviceConfig::UNCONFIGURED_PIN) {
+    doc["sensor_value"] = sensor.getValue();
+  }
 
   String message;
   serializeJson(doc, message);
@@ -247,7 +253,9 @@ void Sync::sendAccessEvent(const char* code, const char* result, unsigned long t
   mqttClient.publish(topicEvent.c_str(), message.c_str());
 }
 
-void Sync::updateFirmware() {
+void Sync::updateFirmware(const char* commandId) {
+  const char* ackCmdId = (commandId && strlen(commandId) > 0) ? commandId : "local";
+
   DEBUG_PRINTLN("[Firmware] Starting firmware update...");
   std::unique_ptr<BearSSL::WiFiClientSecure> client(new BearSSL::WiFiClientSecure);
   client->setInsecure();
@@ -257,7 +265,7 @@ void Sync::updateFirmware() {
   uint32_t optimizedFreeHeap = optimizeMemoryForOTA();
   if (optimizedFreeHeap < 25000) {
     DEBUG_PRINTLN("[Firmware] ERROR: Not enough free heap for OTA update");
-    sendCommandAck("update-firmware-error");
+    sendCommandAck("update-firmware-error", 255, ackCmdId);
     return;
   }
 
@@ -280,13 +288,13 @@ void Sync::updateFirmware() {
   // Reconnect to send ACK before restart
   if (reconnect()) {
     if (ret == HTTP_UPDATE_OK) {
-      sendCommandAck("update-firmware-success");
+      sendCommandAck("update-firmware-success", 255, ackCmdId);
     } else if (ret == HTTP_UPDATE_FAILED) {
-      sendCommandAck("update-firmware-failed");
+      sendCommandAck("update-firmware-failed", 255, ackCmdId);
     } else if (ret == HTTP_UPDATE_NO_UPDATES) {
-      sendCommandAck("update-firmware-no-update");
+      sendCommandAck("update-firmware-no-update", 255, ackCmdId);
     } else {
-      sendCommandAck("update-firmware-unknown");
+      sendCommandAck("update-firmware-unknown", 255, ackCmdId);
     }
     delay(500);  // Allow message to be sent
   }
