@@ -30,26 +30,28 @@ ESP-PORTATEC is a robust firmware solution designed for ESP8266 microcontrollers
 - Magnetic sensor (Reed switch) for state monitoring
 - Power supply (5V via USB or external source)
 
-## Installation
+## Installation & Upload
 
 1. Clone this repository:
    ```bash
    git clone https://github.com/rodrigomedeirosbrazil/esp-portatec.git
    ```
 
-2. Open the project in **PlatformIO** (recommended) or Arduino IDE.
-
-3. Build and Upload:
-   Using PlatformIO CLI:
+2. **Build & Upload Firmware:**
+   Use the PlatformIO CLI to compile and flash the firmware to your device.
    ```bash
-   # Build
-   pio run
+   # Build the project
+   ~/.platformio/penv/bin/pio run
 
-   # Upload Firmware
-   pio run -t upload
+   # Upload Firmware to the device
+   ~/.platformio/penv/bin/pio run -t upload
+   ```
 
-   # Upload Filesystem (HTML/CSS/JS)
-   pio run -t uploadfs
+3. **Upload Filesystem (LittleFS):**
+   The web interface files (`index.html`, `config.html`, etc.) are stored in the `data/` folder and must be uploaded to the device's flash memory separately.
+   ```bash
+   # Upload all files from the data/ directory to LittleFS
+   ~/.platformio/penv/bin/pio run -t uploadfs
    ```
 
 ## Configuration

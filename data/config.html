@@ -1,39 +1,130 @@
-<!DOCTYPE html><html><head>
-<meta name='viewport' content='width=device-width, initial-scale=1'><meta charset="UTF-8">
-<title>ESP-PORTATEC Configuration</title>
-<style>
-body { font-family: Arial, sans-serif; margin: 20px; text-align: center; }
-input { padding: 10px; margin: 10px; width: 80%; max-width: 300px; }
-button { padding: 10px 20px; font-size: 16px; background-color: #4CAF50; color: white; border: none; border-radius: 4px; cursor: pointer; }
-button:hover { background-color: #45a049; }
-.section { margin: 20px 0; padding: 20px; border: 1px solid #ddd; border-radius: 4px; }
-h2 { margin-top: 0; }
-.chip-id { font-size: 14px; color: #666; margin-bottom: 20px; }
-</style></head>
+<!DOCTYPE html>
+<html>
+<head>
+    <meta name='viewport' content='width=device-width, initial-scale=1'>
+    <meta charset="UTF-8">
+    <title>ESP-PORTATEC Configuration</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; text-align: center; color: #333; }
+        .section { margin: 20px auto; padding: 20px; border: 1px solid #ddd; border-radius: 8px; max-width: 400px; background-color: #f9f9f9; }
+        h2 { margin-top: 0; color: #4CAF50; font-size: 1.2em; }
+        .chip-id { font-size: 14px; color: #666; margin-bottom: 20px; }
+        
+        .input-group { margin-bottom: 15px; text-align: left; }
+        label { display: block; font-weight: bold; margin-bottom: 5px; font-size: 14px; color: #555; }
+        
+        input[type='text'], input[type='password'], input[type='number'] { 
+            padding: 10px; width: 100%; box-sizing: border-box; border: 1px solid #ccc; border-radius: 4px; font-size: 16px;
+        }
+        
+        .password-container { position: relative; display: flex; align-items: center; }
+        .toggle-password { 
+            position: absolute; right: 5px; background: none; border: none; cursor: pointer; 
+            font-size: 20px; color: #777; padding: 5px; line-height: 1;
+        }
+        
+        .checkbox-group { text-align: left; margin: 10px 0; display: flex; align-items: center; }
+        .checkbox-group input { width: auto; margin: 0 10px 0 0; }
+        
+        button[type='submit'] { 
+            padding: 12px 24px; font-size: 16px; background-color: #4CAF50; color: white; 
+            border: none; border-radius: 4px; cursor: pointer; width: 100%; max-width: 400px; font-weight: bold;
+        }
+        button[type='submit']:hover { background-color: #45a049; }
+    </style>
+</head>
 <body>
-<h1>ESP-PORTATEC Configuration</h1>
-<div class='chip-id'>Chip ID: %CHIP_ID%</div>
-<form action='/saveconfig' method='POST'>
-<div class='section'>
-<h2>Device Configuration</h2>
-<input type='text' name='devicename' placeholder='Device Name' value='%DEVICE_NAME%' required><br>
-<input type='password' name='password' placeholder='WiFi Password' value='%PASSWORD%' required><br>
-<input type='number' name='pulsepin' placeholder='Pulse Pin' value='%PULSE_PIN%' required><br>
-<input type='password' name='pin' placeholder='PIN' value='%PIN%' required><br>
-<input type='checkbox' name='pulseinverted' id='pulseinverted' value='true' %PULSE_INVERTED_CHECKED%><label for='pulseinverted'>Invert Pulse</label><br>
-<input type='number' name='sensorpin' placeholder='Sensor Pin' value='%SENSOR_PIN%'><br>
-</div>
-<div class='section'>
-<h2>WiFi Network Configuration</h2>
-<input type='text' name='wifissid' placeholder='WiFi Network Name (SSID)' value='%WIFI_SSID%'><br>
-<input type='password' name='wifipass' placeholder='WiFi Network Password' value='%WIFI_PASS%'><br>
-</div>
-<div class='section'>
-<h2>MQTT Configuration</h2>
-<input type='text' name='mqtthost' placeholder='MQTT Host' value='%MQTT_HOST%'><br>
-<input type='number' name='mqttport' placeholder='MQTT Port (default 1883)' value='%MQTT_PORT%'><br>
-<input type='text' name='mqttuser' placeholder='MQTT User (optional)' value='%MQTT_USER%'><br>
-<input type='password' name='mqttpass' placeholder='MQTT Password (optional)' value='%MQTT_PASS%'><br>
-</div>
-<button type='submit'>Save Configuration</button>
-</form></body></html>
+    <h1>ESP-PORTATEC</h1>
+    <div class='chip-id'>Chip ID: %CHIP_ID%</div>
+    
+    <form action='/saveconfig' method='POST'>
+        <div class='section'>
+            <h2>Device Configuration</h2>
+            <div class='input-group'>
+                <label for='devicename'>Device Name</label>
+                <input type='text' id='devicename' name='devicename' placeholder='e.g. Main Gate' value='%DEVICE_NAME%' required>
+            </div>
+            <div class='input-group'>
+                <label for='password'>AP WiFi Password (Device)</label>
+                <div class='password-container'>
+                    <input type='password' id='password' name='password' value='%PASSWORD%' required>
+                    <button type='button' class='toggle-password' onclick="togglePass('password')">👁️</button>
+                </div>
+            </div>
+            <div class='input-group'>
+                <label for='pulsepin'>Pulse Pin (GPIO)</label>
+                <input type='number' id='pulsepin' name='pulsepin' value='%PULSE_PIN%' required>
+            </div>
+            <div class='input-group'>
+                <label for='pin'>Master PIN</label>
+                <div class='password-container'>
+                    <input type='password' id='pin' name='pin' value='%PIN%' required>
+                    <button type='button' class='toggle-password' onclick="togglePass('pin')">👁️</button>
+                </div>
+            </div>
+            <div class='checkbox-group'>
+                <input type='checkbox' name='pulseinverted' id='pulseinverted' value='true' %PULSE_INVERTED_CHECKED%>
+                <label for='pulseinverted'>Invert Pulse Logic (Active Low)</label>
+            </div>
+            <div class='input-group'>
+                <label for='sensorpin'>Sensor Pin (GPIO)</label>
+                <input type='number' id='sensorpin' name='sensorpin' value='%SENSOR_PIN%'>
+            </div>
+        </div>
+
+        <div class='section'>
+            <h2>WiFi Network Configuration</h2>
+            <div class='input-group'>
+                <label for='wifissid'>WiFi SSID (Network Name)</label>
+                <input type='text' id='wifissid' name='wifissid' value='%WIFI_SSID%'>
+            </div>
+            <div class='input-group'>
+                <label for='wifipass'>WiFi Password</label>
+                <div class='password-container'>
+                    <input type='password' id='wifipass' name='wifipass' value='%WIFI_PASS%'>
+                    <button type='button' class='toggle-password' onclick="togglePass('wifipass')">👁️</button>
+                </div>
+            </div>
+        </div>
+
+        <div class='section'>
+            <h2>MQTT Configuration</h2>
+            <div class='input-group'>
+                <label for='mqtthost'>MQTT Host / Broker</label>
+                <input type='text' id='mqtthost' name='mqtthost' value='%MQTT_HOST%'>
+            </div>
+            <div class='input-group'>
+                <label for='mqttport'>MQTT Port</label>
+                <input type='number' id='mqttport' name='mqttport' value='%MQTT_PORT%'>
+            </div>
+            <div class='input-group'>
+                <label for='mqttuser'>MQTT User</label>
+                <input type='text' id='mqttuser' name='mqttuser' value='%MQTT_USER%'>
+            </div>
+            <div class='input-group'>
+                <label for='mqttpass'>MQTT Password</label>
+                <div class='password-container'>
+                    <input type='password' id='mqttpass' name='mqttpass' value='%MQTT_PASS%'>
+                    <button type='button' class='toggle-password' onclick="togglePass('mqttpass')">👁️</button>
+                </div>
+            </div>
+        </div>
+
+        <button type='submit'>Save Configuration</button>
+    </form>
+
+    <script>
+        function togglePass(id) {
+            var x = document.getElementById(id);
+            var btn = x.nextElementSibling;
+            if (x.type === "password") {
+                x.type = "text";
+                btn.innerHTML = "🙈";
+            } else {
+                x.type = "password";
+                btn.innerHTML = "👁️";
+            }
+        }
+    </script>
+</body>
+</html>
