@@ -37,7 +37,7 @@ void DeviceConfig::initDefaultConfig() {
     sensorPin = UNCONFIGURED_PIN;
     pulseInverted = false;
     strcpy(pin, "123456");
-    mqttHost[0] = '\0';
+    strcpy(mqttHost, "portatec.medeirostec.com.br");  // Default broker
     mqttPort = 1883;
     mqttUser[0] = '\0';
     mqttPassword[0] = '\0';
@@ -114,7 +114,7 @@ void DeviceConfig::loadConfig() {
     pulseInverted = legacy.pulseInverted;
     strncpy(pin, legacy.pin, sizeof(pin) - 1);
     pin[sizeof(pin) - 1] = '\0';
-    mqttHost[0] = '\0';
+    strcpy(mqttHost, "portatec.medeirostec.com.br");  // Default for migrated devices
     mqttPort = 1883;
     mqttUser[0] = '\0';
     mqttPassword[0] = '\0';

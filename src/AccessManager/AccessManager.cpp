@@ -62,6 +62,23 @@ void AccessManager::deletePin(int id) {
     DEBUG_PRINTLN("[AccessManager] Pin ID not found for deletion.");
 }
 
+void AccessManager::syncFromBackend(JsonArray accessCodes) {
+    pins.clear();
+    int id = 0;
+    for (JsonVariant v : accessCodes) {
+        JsonObject obj = v.as<JsonObject>();
+        const char* code = obj["pin"].as<const char*>();
+        unsigned long start_unix = obj["start_unix"].as<unsigned long>();
+        unsigned long end_unix = obj["end_unix"].as<unsigned long>();
+        if (code && strlen(code) > 0) {
+            createPin(id++, String(code), start_unix, end_unix);
+        }
+    }
+    DEBUG_PRINT("[AccessManager] Synced ");
+    DEBUG_PRINT(pins.size());
+    DEBUG_PRINTLN(" access codes from backend.");
+}
+
 int AccessManager::validate(String inputCode) {
     // 1. Check Master PIN
     if (inputCode == deviceConfig.getPin()) {

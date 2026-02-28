@@ -1,33 +1,40 @@
 #ifndef SYNC_H
 #define SYNC_H
 
-#include <WebSocketsClient.h>
+#include <ESP8266WiFi.h>
+#include <PubSubClient.h>
 #include <ArduinoJson.h>
 #include "globals.h"
 
 class Sync {
   private:
-    unsigned long lastPing;
+    WiFiClient wifiClient;
+    PubSubClient mqttClient;
+    unsigned long lastReconnectAttempt;
     unsigned long lastSuccessfulSync;
+    unsigned long lastHeartbeat;
     String deviceId;
-    String channelName;
-    WebSocketsClient webSocket;
+    String topicCommand;
+    String topicAccessCodesSync;
+    String topicAck;
+    String topicStatus;
+    String topicEvent;
+    String topicAccessCodesAck;
     bool connected;
-    bool subscribed;
+    String clientId;
 
-    void onWebSocketEvent(WStype_t type, uint8_t * payload, size_t length);
-    void subscribeToChannel();
-    void sendPong();
+    void subscribeToTopics();
     void sendDeviceStatus();
-    void handlePusherMessage(String message);
+    void handleCommand(JsonObject data);
+    void handleAccessCodesSync(JsonObject data);
     void pulse();
-    void sendCommandAck(String commandName, uint8_t gpio = 255);
+    void sendCommandAck(String action, uint8_t gpio = 255);
     void updateFirmware();
-    void sendDiagnosticInfo(String event);
     uint32_t optimizeMemoryForOTA();
-    void processPinAction(JsonVariant data);
+    bool reconnect();
 
   public:
+    void mqttCallback(char* topic, byte* payload, unsigned int length);
     Sync();
     void handle();
     void connect();
@@ -36,6 +43,7 @@ class Sync {
     unsigned long getLastSuccessfulSync();
     void sendSensorStatus(int value);
     void sendPinUsage(int pinId);
+    void sendAccessEvent(const char* code, const char* result, unsigned long timestamp);
 };
 
 #endif

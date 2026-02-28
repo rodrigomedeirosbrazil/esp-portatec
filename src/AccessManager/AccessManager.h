@@ -2,6 +2,7 @@
 #define ACCESSMANAGER_H
 
 #include <Arduino.h>
+#include <ArduinoJson.h>
 #include <vector>
 
 struct AccessPin {
@@ -15,6 +16,7 @@ class AccessManager {
 public:
     AccessManager();
     void handlePinAction(String action, int id, String code, unsigned long start, unsigned long end);
+    void syncFromBackend(JsonArray accessCodes);
     int validate(String inputCode);
     void cleanup();
 
