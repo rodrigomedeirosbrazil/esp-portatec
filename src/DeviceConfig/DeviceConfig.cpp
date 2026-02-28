@@ -5,7 +5,11 @@
 
 const char DeviceConfig::defaultDeviceName[] = "ESP-PORTATEC";
 const char DeviceConfig::defaultPassword[] = "123456789";
-const char* DeviceConfig::FIRMWARE_VERSION = "2025-07-21";
+#ifdef FIRMWARE_VERSION_STR
+const char* DeviceConfig::FIRMWARE_VERSION = FIRMWARE_VERSION_STR;
+#else
+const char* DeviceConfig::FIRMWARE_VERSION = "dev";
+#endif
 
 // Legacy struct for migration from binary format
 #pragma pack(push, 1)
