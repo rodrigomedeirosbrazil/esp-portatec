@@ -105,7 +105,8 @@ void Webserver::handlePulse() {
   if (instance->server.hasArg("pin")) {
     String pin = instance->server.arg("pin");
     pin.trim(); // Remove any accidental whitespace
-    
+    unsigned long timestamp = systemClock.getUnixTime();
+
     int authorizedId = accessManager.validate(pin);
 
     if (authorizedId != 0) {
@@ -115,12 +116,10 @@ void Webserver::handlePulse() {
       delay(500);
       digitalWrite(pulsePin, inverted ? HIGH : LOW);
 
-      if (authorizedId > 0) {
-        sync.sendPinUsage(authorizedId);
-      }
-
+      sync.sendAccessEvent(pin.c_str(), "valid", timestamp);
       instance->server.send(200, "text/plain", "GPIO " + String(pulsePin) + " toggled");
     } else {
+      sync.sendAccessEvent(pin.c_str(), "invalid", timestamp);
       delay(3000); // Add 3-second delay for incorrect PIN
       instance->server.send(401, "application/json", "{\"success\":false,\"message\":\"PIN incorreto!\"}");
     }
