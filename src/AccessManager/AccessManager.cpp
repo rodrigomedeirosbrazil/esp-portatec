@@ -1,5 +1,30 @@
 #include "AccessManager.h"
 #include "../globals.h"
+#include <cstdio>
+#include <cstring>
+
+// Parse ISO 8601 "2026-01-01T00:00:00" or "2026-01-01T00:00:00Z" or "2026-01-01T00:00:00+00:00"
+// Returns Unix timestamp (UTC), or 0 on parse error
+static unsigned long parseIso8601ToUnix(const char* str) {
+  if (!str || strlen(str) < 19) return 0;
+  int year, month, day, hour, min, sec;
+  if (sscanf(str, "%d-%d-%dT%d:%d:%d", &year, &month, &day, &hour, &min, &sec) != 6)
+    return 0;
+  if (year < 1970 || year > 2100 || month < 1 || month > 12 || day < 1 || day > 31)
+    return 0;
+  if (hour < 0 || hour > 23 || min < 0 || min > 59 || sec < 0 || sec > 59)
+    return 0;
+
+  // Gregorian to Unix timestamp (UTC)
+  if (month <= 2) {
+    month += 12;
+    year--;
+  }
+  unsigned long days = (unsigned long)day + (153 * (unsigned long)month - 457) / 5
+    + 365 * (unsigned long)year + (unsigned long)year / 4
+    - (unsigned long)year / 100 + (unsigned long)year / 400 - 719469;
+  return days * 86400UL + (unsigned long)hour * 3600UL + (unsigned long)min * 60UL + (unsigned long)sec;
+}
 
 AccessManager::AccessManager() {
 }
@@ -68,11 +93,29 @@ void AccessManager::syncFromBackend(JsonArray accessCodes) {
     for (JsonVariant v : accessCodes) {
         JsonObject obj = v.as<JsonObject>();
         const char* code = obj["pin"].as<const char*>();
-        unsigned long start_unix = obj["start_unix"].as<unsigned long>();
-        unsigned long end_unix = obj["end_unix"].as<unsigned long>();
-        if (code && strlen(code) > 0) {
-            createPin(id++, String(code), start_unix, end_unix);
+        if (!code || strlen(code) == 0) continue;
+
+        unsigned long startUnix;
+        unsigned long endUnix;
+
+        if (obj.containsKey("start_unix") && obj.containsKey("end_unix")) {
+            startUnix = obj["start_unix"].as<unsigned long>();
+            endUnix = obj["end_unix"].as<unsigned long>();
+        } else if (obj.containsKey("start") && obj.containsKey("end")) {
+            const char* startStr = obj["start"].as<const char*>();
+            const char* endStr = obj["end"].as<const char*>();
+            startUnix = parseIso8601ToUnix(startStr);
+            endUnix = parseIso8601ToUnix(endStr);
+            if (startUnix == 0 || endUnix == 0) {
+                DEBUG_PRINTLN("[AccessManager] Skipping access code - invalid ISO 8601 date");
+                continue;
+            }
+        } else {
+            DEBUG_PRINTLN("[AccessManager] Skipping access code - missing start/end");
+            continue;
         }
+
+        createPin(id++, String(code), startUnix, endUnix);
     }
     DEBUG_PRINT("[AccessManager] Synced ");
     DEBUG_PRINT(pins.size());

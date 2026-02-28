@@ -144,8 +144,8 @@ void Sync::handleCommand(JsonObject data) {
 
   lastSuccessfulSync = millis();
 
-  if (strcmp(action, "pulse") == 0 || strcmp(action, "toggle") == 0) {
-    pulse(commandId.c_str());
+  if (strcmp(action, "pulse") == 0 || strcmp(action, "toggle") == 0 || strcmp(action, "push_button") == 0) {
+    executeRelay(action, commandId.c_str());
   } else if (strcmp(action, "update_firmware") == 0) {
     updateFirmware(commandId.c_str());
   } else {
@@ -173,17 +173,17 @@ void Sync::handleAccessCodesSync(JsonObject data) {
   mqttClient.publish(topicAccessCodesAck.c_str(), ackMsg.c_str());
 }
 
-void Sync::pulse(const char* commandId) {
+void Sync::executeRelay(const char* action, const char* commandId) {
   uint8_t pin = deviceConfig.getPulsePin();
   bool inverted = deviceConfig.getPulseInverted();
 
-  DEBUG_PRINT("[Device] Executing pulse on pin: ");
+  DEBUG_PRINT("[Device] Executing relay on pin: ");
   DEBUG_PRINTLN(pin);
   digitalWrite(pin, inverted ? LOW : HIGH);
   delay(500);
   digitalWrite(pin, inverted ? HIGH : LOW);
-  sendCommandAck("pulse", pin, commandId);
-  DEBUG_PRINTLN("[Device] Pulse completed");
+  sendCommandAck(String(action), pin, commandId);
+  DEBUG_PRINTLN("[Device] Relay pulse completed");
 }
 
 void Sync::sendCommandAck(String action, uint8_t gpio, const char* commandId) {
