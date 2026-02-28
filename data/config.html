@@ -88,7 +88,10 @@
         </div>
 
         <div class='section'>
-            <h2>MQTT Configuration</h2>
+            <div style='display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;'>
+                <h2 style='margin: 0;'>MQTT Configuration</h2>
+                <div id='mqtt-status' style='font-size: 0.9em;'>%MQTT_STATUS_HTML%</div>
+            </div>
             <div class='input-group'>
                 <label for='mqtthost'>MQTT Host / Broker</label>
                 <input type='text' id='mqtthost' name='mqtthost' value='%MQTT_HOST%'>

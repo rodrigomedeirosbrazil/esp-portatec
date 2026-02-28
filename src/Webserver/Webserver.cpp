@@ -43,6 +43,16 @@ void Webserver::handleConfig() {
     html.replace("%MQTT_PORT%", String(deviceConfig.getMqttPort()));
     html.replace("%MQTT_USER%", String(deviceConfig.getMqttUser()));
     html.replace("%MQTT_PASS%", String(deviceConfig.getMqttPassword()));
+
+    // MQTT Connection Status
+    String mqttStatusHtml = "";
+    if (sync.isConnected()) {
+        mqttStatusHtml = "<span style='color: #4CAF50; font-weight: bold;'>● Conectado</span>";
+    } else {
+        mqttStatusHtml = "<span style='color: #f44336; font-weight: bold;'>● Desconectado</span>";
+    }
+    html.replace("%MQTT_STATUS_HTML%", mqttStatusHtml);
+
     return html;
   });
 }
