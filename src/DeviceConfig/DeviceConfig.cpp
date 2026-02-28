@@ -1,15 +1,12 @@
 #include <Arduino.h>
 #include <EEPROM.h>
 #include <ArduinoJson.h>
+#include "version.h"
 #include "DeviceConfig.h"
 
 const char DeviceConfig::defaultDeviceName[] = "ESP-PORTATEC";
 const char DeviceConfig::defaultPassword[] = "123456789";
-#ifdef FIRMWARE_VERSION_STR
 const char* DeviceConfig::FIRMWARE_VERSION = FIRMWARE_VERSION_STR;
-#else
-const char* DeviceConfig::FIRMWARE_VERSION = "dev";
-#endif
 
 // Legacy struct for migration from binary format
 #pragma pack(push, 1)
