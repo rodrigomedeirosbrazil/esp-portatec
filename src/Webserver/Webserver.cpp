@@ -139,9 +139,9 @@ void Webserver::handlePulse() {
     pin.trim(); // Remove any accidental whitespace
     unsigned long timestamp = systemClock.getUnixTime();
 
-    int authorizedId = accessManager.validate(pin);
+    bool isAuthorized = accessManager.validate(pin);
 
-    if (authorizedId != 0) {
+    if (isAuthorized) {
       uint8_t pulsePin = deviceConfig.getPulsePin();
       bool inverted = deviceConfig.getPulseInverted();
       digitalWrite(pulsePin, inverted ? LOW : HIGH);

@@ -17,7 +17,7 @@ public:
     AccessManager();
     void handlePinAction(String action, int id, String code, unsigned long start, unsigned long end);
     void syncFromBackend(JsonArray accessCodes);
-    int validate(String inputCode);
+    bool validate(String inputCode);
     void cleanup();
 
 private:

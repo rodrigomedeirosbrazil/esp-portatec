@@ -122,11 +122,11 @@ void AccessManager::syncFromBackend(JsonArray accessCodes) {
     DEBUG_PRINTLN(" access codes from backend.");
 }
 
-int AccessManager::validate(String inputCode) {
+bool AccessManager::validate(String inputCode) {
     // 1. Check Master PIN
     if (inputCode == deviceConfig.getPin()) {
         DEBUG_PRINTLN("[AccessManager] Validated Master PIN");
-        return -1;
+        return true;
     }
 
     // 2. Check Temporary PINs
@@ -136,7 +136,7 @@ int AccessManager::validate(String inputCode) {
     // Usually we deny if time dependent.
     if (currentUnixTime < 1000000) {
          DEBUG_PRINTLN("[AccessManager] System clock not synced, cannot validate temp pins reliably.");
-         return 0; 
+         return false; 
     }
 
     for (const auto& pin : pins) {
@@ -144,7 +144,7 @@ int AccessManager::validate(String inputCode) {
             if (currentUnixTime >= pin.start && currentUnixTime <= pin.end) {
                 DEBUG_PRINT("[AccessManager] Validated Temp PIN ID: ");
                 DEBUG_PRINTLN(pin.id);
-                return pin.id;
+                return true;
             } else {
                 DEBUG_PRINT("[AccessManager] PIN found but time invalid. ID: ");
                 DEBUG_PRINTLN(pin.id);
@@ -153,7 +153,7 @@ int AccessManager::validate(String inputCode) {
     }
 
     DEBUG_PRINTLN("[AccessManager] Invalid PIN");
-    return 0;
+    return false;
 }
 
 void AccessManager::cleanup() {
