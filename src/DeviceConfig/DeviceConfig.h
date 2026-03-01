@@ -36,6 +36,7 @@ public:
     char mqttPassword[32];
 
     DeviceConfig();
+    void begin();
     bool isConfigured() const { return configured; }
     const char* getDeviceName() const { return deviceName; }
     const char* getPassword() const { return wifiPassword; }

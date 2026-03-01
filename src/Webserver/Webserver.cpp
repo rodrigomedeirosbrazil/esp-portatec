@@ -10,7 +10,18 @@ Webserver* Webserver::instance = nullptr;
 
 Webserver::Webserver(): server(80) {
   instance = this;  // Set the instance pointer
-  LittleFS.begin();
+}
+
+void Webserver::begin() {
+  if (!LittleFS.begin()) {
+    DEBUG_PRINTLN("[Webserver] LittleFS Mount Failed. Attempting to format...");
+    if (!LittleFS.format()) {
+       DEBUG_PRINTLN("[Webserver] LittleFS Format Failed.");
+    } else {
+       DEBUG_PRINTLN("[Webserver] LittleFS Format Success. Mounting...");
+       LittleFS.begin();
+    }
+  }
 
   server.on("/config", handleConfig);
   server.on("/saveconfig", HTTP_POST, handleSaveConfig);

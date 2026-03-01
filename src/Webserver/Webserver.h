@@ -24,6 +24,7 @@ class Webserver {
 
     public:
         Webserver();
+        void begin();
         void handleClient();
 };
 

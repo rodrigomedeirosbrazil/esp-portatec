@@ -25,6 +25,9 @@ struct LegacyConfig {
 #pragma pack(pop)
 
 DeviceConfig::DeviceConfig() : configured(false) {
+}
+
+void DeviceConfig::begin() {
     EEPROM.begin(512);
     loadConfig();
 }

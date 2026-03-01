@@ -41,12 +41,20 @@ void setup() {
   DEBUG_PRINTLN("Device starting up...");
 #endif
 
+  // 1. Initialize configuration
+  deviceConfig.begin();
+  DEBUG_PRINTLN("Configuration initialized");
+
+  // 2. Setup pins AFTER config is loaded
   pinMode(deviceConfig.getPulsePin(), OUTPUT);
   digitalWrite(deviceConfig.getPulsePin(), deviceConfig.getPulseInverted() ? HIGH : LOW);
 
   sensor.init();
-
   DEBUG_PRINTLN("Pulse and sensor pins configured");
+
+  // 3. Initialize Webserver (and LittleFS)
+  webserver.begin();
+  DEBUG_PRINTLN("Webserver and filesystem initialized");
 
   WiFi.mode(WIFI_AP_STA);
   setupAPMode();
