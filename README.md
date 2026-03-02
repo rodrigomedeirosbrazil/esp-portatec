@@ -79,7 +79,10 @@ ESP-PORTATEC is a robust firmware solution designed for ESP8266 microcontrollers
 The device connects to an MQTT broker (configurable via DeviceConfig).
 
 - **Subscribed Topics (Broker -> Device):**
-  - `device/{chipId}/command`: Commands with `action` (`pulse`, `toggle`, `update_firmware`).
+  - `device/{chipId}/command`: Commands with `action` (`pulse`, `toggle`, `push_button`, `update_firmware`). Optional `timestamp` (Unix seconds) enables stale command rejection: commands older than 5 seconds are ignored to avoid delayed executions after connection issues.
+    ```json
+    { "action": "pulse", "command_id": "abc123", "timestamp": 1709308800 }
+    ```
   - `device/{chipId}/access-codes/sync`: Full sync of access codes.
     ```json
     { "action": "sync_access_codes", "default_pin": "...", "access_codes": [

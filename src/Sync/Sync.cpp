@@ -8,6 +8,8 @@
 #include "../globals.h"
 #include "../AccessManager/AccessManager.h"
 
+static const unsigned long MAX_COMMAND_AGE_SEC = 5;
+
 static Sync* s_syncInstance = nullptr;
 
 static void mqttCallbackStatic(char* topic, byte* payload, unsigned int length) {
@@ -145,6 +147,21 @@ void Sync::handleCommand(JsonObject data) {
   lastSuccessfulSync = millis();
 
   if (strcmp(action, "pulse") == 0 || strcmp(action, "toggle") == 0 || strcmp(action, "push_button") == 0) {
+    // Validate command age (ignore stale commands > 5 seconds)
+    unsigned long msgTimestamp = data["timestamp"] | 0UL;
+    if (msgTimestamp != 0) {
+      unsigned long now = systemClock.getUnixTime();
+      if (now == 0) {
+        DEBUG_PRINTLN("[MQTT] Command rejected: clock not synced, cannot validate age");
+        sendCommandAck(String(action) + "-rejected", 255, commandId.c_str());
+        return;
+      }
+      if (now >= msgTimestamp && (now - msgTimestamp) > MAX_COMMAND_AGE_SEC) {
+        DEBUG_PRINTLN("[MQTT] Command rejected: too old (stale)");
+        sendCommandAck(String(action) + "-rejected-stale", 255, commandId.c_str());
+        return;
+      }
+    }
     executeRelay(action, commandId.c_str());
   } else if (strcmp(action, "update_firmware") == 0) {
     updateFirmware(commandId.c_str());
