@@ -174,7 +174,8 @@ void Webserver::handlePulse() {
 void Webserver::handleIndex() {
   sendHtml("/index.html", [](String html) -> String {
     html.replace("%DEVICE_NAME%", String(deviceConfig.getDeviceName()));
-    
+    html.replace("%CURRENT_TIME%", formatUnixTime(systemClock.getUnixTime()));
+
     if (deviceConfig.getSensorPin() != DeviceConfig::UNCONFIGURED_PIN) {
       bool sensorState = digitalRead(deviceConfig.getSensorPin());
       String statusHtml = "<div class='status-display " + String(sensorState ? "status-closed" : "status-open") + "'>";

@@ -57,10 +57,12 @@ button:disabled { background-color: #cccccc; cursor: not-allowed; }
   appearance: none;
 }
 .block-events * { pointer-events: none; }
+.device-clock { font-family: monospace; color: #555; font-size: 14px; margin-top: 4px; }
 </style></head>
 <body>
 <h1>ESP-PORTATEC Control</h1>
 <p>Dispositivo: %DEVICE_NAME%</p>
+<p class='device-clock'>Relógio: %CURRENT_TIME%</p>
 
 %SENSOR_STATUS_HTML%
 
