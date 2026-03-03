@@ -38,17 +38,15 @@ bool Sensor::hasChanged() {
         return false;
     }
 
+    // Valor estável: após DEBOUNCE_DELAY, confirmar mudança em relação a stableValue
+    if (millis() - lastStableValue >= DEBOUNCE_DELAY && currentSensorValue != stableValue) {
+        DEBUG_PRINT("Sensor change confirmed! Previous: ");
+        DEBUG_PRINT(stableValue);
+        DEBUG_PRINT(", Current: ");
+        DEBUG_PRINTLN(currentSensorValue);
 
-    if (millis() - lastStableValue >= DEBOUNCE_DELAY) {
-        if (currentSensorValue != stableValue) {
-            DEBUG_PRINT("Sensor change confirmed! Previous: ");
-            DEBUG_PRINT(stableValue);
-            DEBUG_PRINT(", Current: ");
-            DEBUG_PRINTLN(currentSensorValue);
-
-            stableValue = currentSensorValue;
-            return true;
-        }
+        stableValue = currentSensorValue;
+        return true;
     }
 
     return false;
